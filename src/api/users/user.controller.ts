@@ -30,7 +30,7 @@ export class UserController extends BaseController {
 
       res.status(200).json({
         success: true,
-        message: 'Profile completed successfully.',
+        message: 'Profile setup completed successfully.',
         data: updatedUser
       })
     } catch (error) {
