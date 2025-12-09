@@ -8,6 +8,7 @@ import { corsOptions } from './config/cors.config'
 import { adminRouter } from './api/admin/admin.routes'
 import { authRouter } from './api/auth/auth.routes'
 import { userRouter } from './api/users/user.routes'
+import { telecallerRouter } from './api/telecaller/telecaller.routes'
 
 const app: Application = express();
 
@@ -25,6 +26,7 @@ app.use(cookieParser())
 app.use('/auth', authRouter)
 app.use('/admin', adminRouter);
 app.use('/users', userRouter)
+app.use('/telecaller', telecallerRouter);
 app.get('/health', (req, res) => res.status(200).json({ status: 'UP' }))
 
 app.use(errorHandler)
