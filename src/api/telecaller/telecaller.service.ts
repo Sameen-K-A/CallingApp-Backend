@@ -5,6 +5,8 @@ import {
   EditProfileDto,
   ITelecallerRepository,
   ITelecallerService,
+  ReapplyDto,
+  ReapplyUpdatePayload,
   TelecallerProfileResponse,
   TelecallerUpdatePayload,
 } from './telecaller.types';
@@ -81,6 +83,35 @@ export class TelecallerService implements ITelecallerService {
 
     if (!updatedUser) {
       throw new ApiError(500, 'Failed to update user profile.');
+    }
+
+    return buildUserProfileResponse(updatedUser);
+  };
+
+  public async reapplyApplication(userId: string, reapplyData: ReapplyDto): Promise<TelecallerProfileResponse> {
+    const user = await this.telecallerRepository.findUserById(userId);
+    this.checkUserAndAccountStatus(user);
+
+    if (!isTelecaller(user)) {
+      throw new ApiError(400, 'Only telecallers can re-apply.');
+    }
+
+    if (user.telecallerProfile.approvalStatus !== 'REJECTED') {
+      throw new ApiError(400, 'You can only re-apply if your application was rejected.');
+    }
+
+    const updatePayload: ReapplyUpdatePayload = {
+      name: reapplyData.name,
+      dob: new Date(reapplyData.dob),
+      language: reapplyData.language,
+      'telecallerProfile.about': reapplyData.about,
+      'telecallerProfile.approvalStatus': 'PENDING',
+    };
+
+    const updatedUser = await this.telecallerRepository.updateUser(userId, updatePayload);
+
+    if (!updatedUser) {
+      throw new ApiError(500, 'Failed to submit re-application.');
     }
 
     return buildUserProfileResponse(updatedUser);

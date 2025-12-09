@@ -1,5 +1,5 @@
 import UserModel, { IUserDocument } from '../../models/user.model';
-import { ITelecallerRepository, TelecallerUpdatePayload } from './telecaller.types';
+import { ITelecallerRepository, ReapplyUpdatePayload, TelecallerUpdatePayload } from './telecaller.types';
 
 export class TelecallerRepository implements ITelecallerRepository {
 
@@ -7,7 +7,7 @@ export class TelecallerRepository implements ITelecallerRepository {
     return UserModel.findById(userId);
   };
 
-  public async updateUser(userId: string, payload: TelecallerUpdatePayload): Promise<IUserDocument | null> {
+  public async updateUser(userId: string, payload: TelecallerUpdatePayload | ReapplyUpdatePayload): Promise<IUserDocument | null> {
     return UserModel.findByIdAndUpdate(userId, { $set: payload }, { new: true });
   };
 
