@@ -5,7 +5,7 @@ import {
   TelecallerToServerEvents,
   TelecallerSocketData
 } from '../types/telecaller.events';
-import { setOffline, setOnline } from '../services/presence.service';
+import { setOffline, setOnline, updateTelecallerPresenceInDB } from '../services/presence.service';
 
 export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData> => {
 
@@ -14,16 +14,28 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
   telecallerNamespace.use(socketAuthMiddleware);
   telecallerNamespace.use(requireRole(['TELECALLER']));
 
-  telecallerNamespace.on('connection', (socket) => {
+  telecallerNamespace.on('connection', async (socket) => {
     const userId = socket.data.userId;
     const role = socket.data.role;
 
-    setOnline('TELECALLER', userId, socket.id);
-    console.log(`🟢 Telecaller connected: ${socket.id} | User ID: ${userId} | Role: ${role}`);
+    setOnline('TELECALLER', userId, socket.id);                                   // Update in-memory tracking
+    const isDbUpdated = await updateTelecallerPresenceInDB(userId, 'ONLINE');     // Update database presence tracking
 
-    socket.on('disconnect', (reason) => {
-      setOffline('TELECALLER', userId);
-      console.log(`🔴 Tele caller disconnected: ${socket.id} - Reason: ${reason}`);
+    if (isDbUpdated) {
+      console.log(`🟢 Telecaller connected: ${socket.id} | User ID: ${userId} | Role: ${role}`);
+    } else {
+      console.log(`🟡 Telecaller connected (DB update failed): ${socket.id} | User ID: ${userId}`);
+    };
+
+    socket.on('disconnect', async (reason) => {
+      setOffline('TELECALLER', userId);                                           // Update in-memory tracking
+      const isDbUpdated = await updateTelecallerPresenceInDB(userId, 'OFFLINE');  // Update database presence
+
+      if (isDbUpdated) {
+        console.log(`🔴 Telecaller disconnected: ${socket.id} | User ID: ${userId} | Reason: ${reason}`);
+      } else {
+        console.log(`🟠 Telecaller disconnected (DB update failed): ${socket.id} | User ID: ${userId}`);
+      }
     });
 
     socket.on('error', (error) => {

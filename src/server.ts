@@ -5,9 +5,11 @@ import http from "http"
 import app from './app'
 import connectDB from './config/DB.config'
 import { initializeSocketIO, setIOInstance } from './socket';
+import { resetAllTelecallerPresence } from './socket/services/presence.service';
 
 const startServer = async (): Promise<void> => {
   await connectDB()
+  await resetAllTelecallerPresence();
   const PORT = process.env.PORT || 8000
 
   const httpServer = http.createServer(app);
