@@ -5,7 +5,13 @@ import {
   TelecallerToServerEvents,
   TelecallerSocketData
 } from '../types/telecaller.events';
-import { setOffline, setOnline, updateTelecallerPresenceInDB } from '../services/presence.service';
+import {
+  setOnline,
+  setOffline,
+  updateTelecallerPresenceInDB,
+  getTelecallerDetailsForBroadcast,
+  broadcastPresenceToUsers
+} from '../services/presence.service';
 
 export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData> => {
 
@@ -23,6 +29,17 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
 
     if (isDbUpdated) {
       console.log(`🟢 Telecaller connected: ${socket.id} | User ID: ${userId} | Role: ${role}`);
+
+      // Fetch telecaller details and broadcast to all users
+      const telecallerDetails = await getTelecallerDetailsForBroadcast(userId);
+
+      if (telecallerDetails) {
+        broadcastPresenceToUsers({
+          telecallerId: userId,
+          presence: 'ONLINE',
+          telecaller: telecallerDetails
+        });
+      };
     } else {
       console.log(`🟡 Telecaller connected (DB update failed): ${socket.id} | User ID: ${userId}`);
     };
@@ -33,6 +50,13 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
 
       if (isDbUpdated) {
         console.log(`🔴 Telecaller disconnected: ${socket.id} | User ID: ${userId} | Reason: ${reason}`);
+
+        // Broadcast offline status to all users
+        broadcastPresenceToUsers({
+          telecallerId: userId,
+          presence: 'OFFLINE',
+          telecaller: null
+        });
       } else {
         console.log(`🟠 Telecaller disconnected (DB update failed): ${socket.id} | User ID: ${userId}`);
       }

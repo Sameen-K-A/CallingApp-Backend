@@ -115,28 +115,15 @@ export class UserRepository implements IUserRepository {
         $match: {
           role: 'TELECALLER',
           accountStatus: 'ACTIVE',
-          'telecallerProfile.approvalStatus': 'APPROVED'
+          'telecallerProfile.approvalStatus': 'APPROVED',
+          'telecallerProfile.presence': { $in: ['ONLINE', 'ON_CALL'] }
         }
       },
       {
         $facet: {
           metadata: [{ $count: 'total' }],
           telecallers: [
-            {
-              $addFields: {
-                presenceOrder: {
-                  $switch: {
-                    branches: [
-                      { case: { $eq: ['$telecallerProfile.presence', 'ONLINE'] }, then: 1 },
-                      { case: { $eq: ['$telecallerProfile.presence', 'ON_CALL'] }, then: 2 },
-                      { case: { $eq: ['$telecallerProfile.presence', 'OFFLINE'] }, then: 3 }
-                    ],
-                    default: 4
-                  }
-                }
-              }
-            },
-            { $sort: { presenceOrder: 1, createdAt: -1 } },
+            { $sort: { updatedAt: -1 } },
             { $skip: skip },
             { $limit: limit },
             {

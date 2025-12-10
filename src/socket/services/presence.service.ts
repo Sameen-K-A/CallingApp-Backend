@@ -1,10 +1,15 @@
 import UserModel from "../../models/user.model";
 import { ITelecaller } from "../../types/telecaller";
+import { getIOInstance } from '../index';
+import { TelecallerBroadcastData, TelecallerPresenceChangePayload } from '../types/user.events';
 
 type PresenceRoleType = 'USER' | 'TELECALLER';
 
 const onlineUsers = new Map<string, string>();       // userId -> socketId
 const onlineTelecallers = new Map<string, string>(); // userId -> socketId
+
+// In-Memory Operations
+// ============================================
 
 export const setOnline = (type: PresenceRoleType, userId: string, socketId: string): void => {
   const map = type === 'USER' ? onlineUsers : onlineTelecallers;
@@ -80,5 +85,54 @@ export const resetAllTelecallerPresence = async (): Promise<void> => {
   } catch (error) {
     console.error('❌ Failed to reset telecaller presence:', error);
     throw error;
+  }
+};
+
+// Collecting Telecaller Details for Broadcast to user when telecaller presence change to ONLINE
+export const getTelecallerDetailsForBroadcast = async (userId: string): Promise<TelecallerBroadcastData | null> => {
+  try {
+    const telecaller = await UserModel
+      .findOne({
+        _id: userId,
+        role: 'TELECALLER',
+        accountStatus: 'ACTIVE',
+        'telecallerProfile.approvalStatus': 'APPROVED'
+      }, {
+        _id: 1, name: 1, profile: 1, language: 1, 'telecallerProfile.about': 1
+      })
+      .lean();
+
+    if (!telecaller) {
+      return null;
+    }
+
+    return {
+      _id: telecaller._id.toString(),
+      name: telecaller.name || '',
+      profile: telecaller.profile || null,
+      language: telecaller.language || '',
+      about: (telecaller as any).telecallerProfile?.about || '',
+    };
+  } catch (error) {
+    console.error(`❌ Error fetching telecaller details for broadcast:`, error);
+    return null;
+  }
+};
+
+
+// Brodcast socket operations
+// ============================================
+
+// Broadcast Presence to All Connected Users
+export const broadcastPresenceToUsers = (payload: TelecallerPresenceChangePayload): void => {
+  try {
+    const io = getIOInstance();
+    const userNamespace = io.of('/user');
+
+    userNamespace.emit('telecaller:presence-changed', payload);
+
+    console.log(`📡 Broadcasted presence change: ${payload.telecallerId} -> ${payload.presence}`);
+  } catch (error) {
+    console.error('❌ Error broadcasting presence to users:', error);
   }
 };
