@@ -18,6 +18,19 @@ export interface CallInitiateResult {
   caller?: UserCallDetails;
 };
 
+export interface CallActionResult {
+  success: boolean;
+  error?: string;
+  call?: {
+    _id: string;
+    callType: 'AUDIO' | 'VIDEO';
+    userId: string;
+    telecallerId: string;
+  };
+  caller?: UserCallDetails;
+  userSocketId?: string;
+};
+
 export const getUserDetailsForCall = async (userId: string): Promise<UserCallDetails | null> => {
   try {
     const user = await UserModel
@@ -138,5 +151,93 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
   } catch (error) {
     console.error('❌ Error initiating call:', error);
     return { success: false, error: 'Something went wrong. Please try again.' };
+  }
+};
+
+export const acceptCall = async (telecallerId: string, callId: string): Promise<CallActionResult> => {
+  try {
+    if (!Types.ObjectId.isValid(callId)) {
+      return { success: false, error: 'Something went wrong. Please try again.' };
+    };
+    if (!Types.ObjectId.isValid(telecallerId)) {
+      return { success: false, error: 'Something went wrong. Please try again.' };
+    };
+
+    const call = await CallModel
+      .findOne({ _id: callId, telecallerId: telecallerId, status: 'RINGING' })
+      .lean();
+
+    if (!call) {
+      return { success: false, error: 'Call not found or already ended.' };
+    }
+
+    await CallModel.updateOne(
+      { _id: callId },
+      { $set: { status: 'ACCEPTED', acceptedAt: new Date() } }
+    );
+
+    await UserModel.updateOne(
+      { _id: telecallerId, role: 'TELECALLER' },
+      { $set: { 'telecallerProfile.presence': 'ON_CALL' } }
+    );
+
+    const caller = await getUserDetailsForCall(call.userId.toString());
+    const userSocketId = getSocketId('USER', call.userId.toString());
+
+    console.log(`📞 Call accepted: ${callId} | Telecaller: ${telecallerId}`);
+
+    return {
+      success: true,
+      call: {
+        _id: callId,
+        callType: call.callType,
+        userId: call.userId.toString(),
+        telecallerId: telecallerId
+      },
+      caller: caller || { _id: call.userId.toString(), name: 'Unknown', profile: null },
+      userSocketId: userSocketId
+    };
+  } catch (error) {
+    console.error('❌ Error accepting call:', error);
+    return { success: false, error: 'Failed to accept call. Please try again.' };
+  }
+};
+
+export const rejectCall = async (telecallerId: string, callId: string): Promise<CallActionResult> => {
+  try {
+    if (!Types.ObjectId.isValid(callId)) {
+      return { success: false, error: 'Something went wrong. Please try again.' };
+    };
+    if (!Types.ObjectId.isValid(telecallerId)) {
+      return { success: false, error: 'Something went wrong. Please try again.' };
+    };
+
+    const call = await CallModel
+      .findOne({ _id: callId, telecallerId: telecallerId, status: 'RINGING' })
+      .lean();
+
+    if (!call) {
+      return { success: false, error: 'Call not found or already ended.' };
+    }
+
+    await CallModel.updateOne({ _id: callId }, { $set: { status: 'REJECTED' } });
+
+    const userSocketId = getSocketId('USER', call.userId.toString());
+
+    console.log(`📞 Call rejected: ${callId} | Telecaller: ${telecallerId}`);
+
+    return {
+      success: true,
+      call: {
+        _id: callId,
+        callType: call.callType,
+        userId: call.userId.toString(),
+        telecallerId: telecallerId
+      },
+      userSocketId: userSocketId
+    };
+  } catch (error) {
+    console.error('❌ Error rejecting call:', error);
+    return { success: false, error: 'Failed to reject call. Please try again.' };
   }
 };

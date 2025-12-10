@@ -8,15 +8,35 @@ export interface CallIncomingPayload {    // Server → Client: Incoming call fr
   };
 };
 
+export interface CallAcceptPayload {
+  callId: string;
+};
+
+export interface CallRejectPayload {
+  callId: string;
+};
+
+export interface CallAcceptedPayload {
+  callId: string;
+  callType: 'AUDIO' | 'VIDEO';
+  caller: {
+    _id: string;
+    name: string;
+    profile: string | null;
+  };
+};
+
 // Server → Tele caller Events
 export interface ServerToTelecallerEvents {
   'error': (data: { message: string }) => void;
   'call:incoming': (data: CallIncomingPayload) => void;
+  'call:accepted': (data: CallAcceptedPayload) => void;
 };
 
 // Tele caller → Server Events
 export interface TelecallerToServerEvents {
-
+  'call:accept': (data: CallAcceptPayload) => void;
+  'call:reject': (data: CallRejectPayload) => void;
 };
 
 

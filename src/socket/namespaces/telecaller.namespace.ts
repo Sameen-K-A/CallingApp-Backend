@@ -3,7 +3,9 @@ import { requireRole, socketAuthMiddleware } from '../middleware/auth.middleware
 import {
   ServerToTelecallerEvents,
   TelecallerToServerEvents,
-  TelecallerSocketData
+  TelecallerSocketData,
+  CallAcceptPayload,
+  CallRejectPayload,
 } from '../types/telecaller.events';
 import {
   setOnline,
@@ -12,6 +14,8 @@ import {
   getTelecallerDetailsForBroadcast,
   broadcastPresenceToUsers
 } from '../services/presence.service';
+import { acceptCall, rejectCall } from '../services/call.service';
+import { getIOInstance } from '../index';
 
 export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData> => {
 
@@ -43,6 +47,80 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     } else {
       console.log(`🟡 Telecaller connected (DB update failed): ${socket.id} | User ID: ${userId}`);
     };
+
+    // ============================================
+    // Call Accept Handler
+    // ============================================
+    socket.on('call:accept', async (data: CallAcceptPayload) => {
+      console.log(`📞 Call accept request: ${userId} | Call ID: ${data.callId}`);
+
+      if (!data.callId) {
+        socket.emit('error', { message: 'Invalid call ID.' });
+        return;
+      }
+
+      const result = await acceptCall(userId, data.callId);
+
+      if (!result.success || !result.call) {
+        socket.emit('error', { message: result.error || 'Failed to accept call.' });
+        return;
+      }
+
+      broadcastPresenceToUsers({
+        telecallerId: userId,
+        presence: 'ON_CALL',
+        telecaller: null
+      });
+
+      if (result.userSocketId) {
+        const io = getIOInstance();
+        const userNamespace = io.of('/user');
+
+        userNamespace.to(result.userSocketId).emit('call:accepted', {
+          callId: data.callId
+        });
+
+        console.log(`📤 Emitted call:accepted to user: ${result.userSocketId}`);
+      }
+
+      socket.emit('call:accepted', {
+        callId: data.callId,
+        callType: result.call.callType,
+        caller: result.caller!
+      });
+
+      console.log(`📤 Emitted call:accepted to telecaller: ${socket.id}`);
+    });
+
+    // ============================================
+    // Call Reject Handler
+    // ============================================
+    socket.on('call:reject', async (data: CallRejectPayload) => {
+      console.log(`📞 Call reject request: ${userId} | Call ID: ${data.callId}`);
+
+      if (!data.callId) {
+        socket.emit('error', { message: 'Invalid call ID.' });
+        return;
+      }
+
+      const result = await rejectCall(userId, data.callId);
+
+      if (!result.success) {
+        socket.emit('error', { message: result.error || 'Failed to reject call.' });
+        return;
+      }
+
+      if (result.userSocketId) {
+        const io = getIOInstance();
+        const userNamespace = io.of('/user');
+
+        userNamespace.to(result.userSocketId).emit('call:rejected', {
+          callId: data.callId
+        });
+
+        console.log(`📤 Emitted call:rejected to user: ${result.userSocketId}`);
+      }
+    });
 
     socket.on('disconnect', async (reason) => {
       setOffline('TELECALLER', userId);                                           // Update in-memory tracking

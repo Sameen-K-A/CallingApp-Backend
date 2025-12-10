@@ -30,12 +30,22 @@ export interface CallErrorPayload {   // Server → Client: Call initiation fail
   message: string;
 };
 
+export interface CallAcceptedPayload {
+  callId: string;
+};
+
+export interface CallRejectedPayload {
+  callId: string;
+};
+
 // ============================= Server → User Events ========================
 export interface ServerToUserEvents {
   'error': (data: { message: string }) => void;
   'telecaller:presence-changed': (data: TelecallerPresenceChangePayload) => void;
   'call:ringing': (data: CallRingingPayload) => void;
   'call:error': (data: CallErrorPayload) => void;
+  'call:accepted': (data: CallAcceptedPayload) => void;
+  'call:rejected': (data: CallRejectedPayload) => void;
 };
 
 // ============================= User → Server Events ========================
