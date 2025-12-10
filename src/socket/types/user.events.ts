@@ -12,15 +12,35 @@ export interface TelecallerPresenceChangePayload {  // Presence Change Payload
   telecaller: TelecallerBroadcastData | null;
 };
 
+export interface CallInitiatePayload {    // Client → Server: User initiates a call
+  telecallerId: string;
+  callType: 'AUDIO' | 'VIDEO';
+};
+
+export interface CallRingingPayload {     // Server → Client: Call is ringing on telecaller's side
+  callId: string;
+  telecaller: {
+    _id: string;
+    name: string;
+    profile: string | null;
+  };
+};
+
+export interface CallErrorPayload {   // Server → Client: Call initiation failed
+  message: string;
+};
+
 // ============================= Server → User Events ========================
 export interface ServerToUserEvents {
   'error': (data: { message: string }) => void;
   'telecaller:presence-changed': (data: TelecallerPresenceChangePayload) => void;
+  'call:ringing': (data: CallRingingPayload) => void;
+  'call:error': (data: CallErrorPayload) => void;
 };
 
 // ============================= User → Server Events ========================
 export interface UserToServerEvents {
-
+  'call:initiate': (data: CallInitiatePayload, callback?: (response: { success: boolean; message?: string }) => void) => void;
 };
 
 
