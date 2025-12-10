@@ -132,14 +132,12 @@ export type ReportDetailsResponse = Pick<IReport,
   call: Pick<ICall,
     | "_id"
     | "status"
-    | "initiatedAt"
+    | "createdAt"
     | "acceptedAt"
     | "endedAt"
     | "durationInSeconds"
     | "coinsSpent"
     | "coinsEarned"
-    | "endedBy"
-    | "endReason"
     | "userFeedback"
     | "telecallerFeedback"
   >
