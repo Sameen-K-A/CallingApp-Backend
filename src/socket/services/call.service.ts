@@ -457,6 +457,7 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
 
     if (activeCall) {
       const callId = activeCall._id.toString();
+      const telecallerId = activeCall.telecallerId.toString();
       const duration = activeCall.acceptedAt ? calculateDuration(activeCall.acceptedAt) : 0;
 
       await CallModel.updateOne(
@@ -471,24 +472,26 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
       );
 
       await UserModel.updateOne(
-        { _id: activeCall.telecallerId, role: 'TELECALLER' },
+        { _id: telecallerId, role: 'TELECALLER' },
         { $set: { 'telecallerProfile.presence': 'ONLINE' } }
       );
 
       console.log(`📞 Call auto-ended (user disconnected): ${callId} | Duration: ${duration}s`);
 
       const io = getIOInstance();
+
+      // Notify telecaller that call ended
       const telecallerNamespace = io.of('/telecaller');
-      const telecallerSocketId = getSocketId('TELECALLER', activeCall.telecallerId.toString());
+      const telecallerSocketId = getSocketId('TELECALLER', telecallerId);
 
       if (telecallerSocketId) {
         telecallerNamespace.to(telecallerSocketId).emit('call:ended', { callId });
       }
 
-      // Broadcast presence change
+      // Broadcast to all users that telecaller is available again
       const userNamespace = io.of('/user');
       userNamespace.emit('telecaller:presence-changed', {
-        telecallerId: activeCall.telecallerId.toString(),
+        telecallerId: telecallerId,
         presence: 'ONLINE',
         telecaller: null
       });
@@ -504,6 +507,7 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
     if (ringingCall) {
       const callId = ringingCall._id.toString();
       clearCallTimer(callId);
+
       await CallModel.updateOne({ _id: callId }, { $set: { status: 'MISSED' } });
 
       console.log(`📞 Call auto-missed (user disconnected): ${callId}`);
@@ -543,11 +547,6 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
         }
       );
 
-      await UserModel.updateOne(
-        { _id: telecallerId, role: 'TELECALLER' },
-        { $set: { 'telecallerProfile.presence': 'ONLINE' } }
-      );
-
       console.log(`📞 Call auto-ended (telecaller disconnected): ${callId} | Duration: ${duration}s`);
 
       const io = getIOInstance();
@@ -557,13 +556,6 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
       if (userSocketId) {
         userNamespace.to(userSocketId).emit('call:ended', { callId });
       }
-
-      // Broadcast presence change
-      userNamespace.emit('telecaller:presence-changed', {
-        telecallerId: telecallerId,
-        presence: 'ONLINE',
-        telecaller: null
-      });
 
       return;
     }
