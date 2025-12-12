@@ -14,8 +14,14 @@ import {
   getTelecallerDetailsForBroadcast,
   broadcastPresenceToUsers
 } from '../services/presence.service';
-import { acceptCall, rejectCall, handleTelecallerDisconnectDuringCall } from '../services/call.service';
+import {
+  acceptCall,
+  rejectCall,
+  handleTelecallerDisconnectDuringCall,
+  endCall
+} from '../services/call.service';
 import { getIOInstance } from '../index';
+import { CallEndPayload } from '../types/user.events';
 
 export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData> => {
 
@@ -120,6 +126,42 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
 
         console.log(`📤 Emitted call:rejected to user: ${result.userSocketId}`);
       }
+    });
+
+    // ============================================
+    // Call End Handler
+    // ============================================
+    socket.on('call:end', async (data: CallEndPayload) => {
+      console.log(`📞 Call end request: ${userId} | Call ID: ${data.callId}`);
+
+      if (!data.callId) {
+        socket.emit('error', { message: 'Invalid call ID.' });
+        return;
+      }
+
+      const result = await endCall(data.callId, 'TELECALLER', userId);
+
+      if (!result.success) {
+        console.log(`❌ Call end failed: ${result.error}`);
+        return;
+      }
+
+      if (result.otherPartySocketId) {
+        const io = getIOInstance();
+        const userNamespace = io.of('/user');
+
+        userNamespace.to(result.otherPartySocketId).emit('call:ended', {
+          callId: data.callId
+        });
+
+        console.log(`📤 Emitted call:ended to user: ${result.otherPartySocketId}`);
+      }
+
+      broadcastPresenceToUsers({
+        telecallerId: userId,
+        presence: 'ONLINE',
+        telecaller: null
+      });
     });
 
     socket.on('disconnect', async (reason) => {

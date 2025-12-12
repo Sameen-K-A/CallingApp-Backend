@@ -34,6 +34,14 @@ export interface CallCancelledPayload {
   callId: string;
 };
 
+export interface CallEndPayload {
+  callId: string;
+};
+
+export interface CallEndedPayload {
+  callId: string;
+};
+
 // Server → Tele caller Events
 export interface ServerToTelecallerEvents {
   'error': (data: { message: string }) => void;
@@ -41,12 +49,14 @@ export interface ServerToTelecallerEvents {
   'call:accepted': (data: CallAcceptedPayload) => void;
   'call:missed': (data: CallMissedPayload) => void;
   'call:cancelled': (data: CallCancelledPayload) => void;
+  'call:ended': (data: CallEndedPayload) => void;
 };
 
 // Tele caller → Server Events
 export interface TelecallerToServerEvents {
   'call:accept': (data: CallAcceptPayload) => void;
   'call:reject': (data: CallRejectPayload) => void;
+  'call:end': (data: CallEndPayload) => void;
 };
 
 

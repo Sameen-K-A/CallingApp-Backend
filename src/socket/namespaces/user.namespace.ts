@@ -6,9 +6,15 @@ import {
   UserSocketData,
   CallInitiatePayload,
   CallCancelPayload,
+  CallEndPayload,
 } from '../types/user.events';
-import { setOffline, setOnline } from '../services/presence.service';
-import { cancelCall, handleUserDisconnectDuringCall, initiateCall } from '../services/call.service';
+import { broadcastPresenceToUsers, setOffline, setOnline } from '../services/presence.service';
+import {
+  initiateCall,
+  cancelCall,
+  endCall,
+  handleUserDisconnectDuringCall,
+} from '../services/call.service';
 import { getIOInstance } from '../index';
 
 export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEvents, ServerToUserEvents, {}, UserSocketData> => {
@@ -107,6 +113,44 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
         });
 
         console.log(`📤 Emitted call:cancelled to telecaller: ${result.telecallerSocketId}`);
+      }
+    });
+
+    // ============================================
+    // Call End Handler
+    // ============================================
+    socket.on('call:end', async (data: CallEndPayload) => {
+      console.log(`📞 Call end request: ${userId} | Call ID: ${data.callId}`);
+
+      if (!data.callId) {
+        socket.emit('call:error', { message: 'Invalid call ID' });
+        return;
+      }
+
+      const result = await endCall(data.callId, 'USER', userId);
+
+      if (!result.success) {
+        console.log(`❌ Call end failed: ${result.error}`);
+        return;
+      }
+
+      if (result.otherPartySocketId) {
+        const io = getIOInstance();
+        const telecallerNamespace = io.of('/telecaller');
+
+        telecallerNamespace.to(result.otherPartySocketId).emit('call:ended', {
+          callId: data.callId
+        });
+
+        console.log(`📤 Emitted call:ended to telecaller: ${result.otherPartySocketId}`);
+      }
+
+      if (result.telecallerId) {
+        broadcastPresenceToUsers({
+          telecallerId: result.telecallerId,
+          presence: 'ONLINE',
+          telecaller: null
+        });
       }
     });
 
