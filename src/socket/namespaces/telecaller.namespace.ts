@@ -1,11 +1,10 @@
 import { Server as SocketIOServer, Namespace } from 'socket.io';
 import { requireRole, socketAuthMiddleware } from '../middleware/auth.middleware';
+import { CallIdPayload } from '../types/user.events';
 import {
   ServerToTelecallerEvents,
   TelecallerToServerEvents,
   TelecallerSocketData,
-  CallAcceptPayload,
-  CallRejectPayload,
 } from '../types/telecaller.events';
 import {
   setOnline,
@@ -17,11 +16,14 @@ import {
 import {
   acceptCall,
   rejectCall,
+  endCall,
   handleTelecallerDisconnectDuringCall,
-  endCall
 } from '../services/call.service';
 import { getIOInstance } from '../index';
-import { CallEndPayload } from '../types/user.events';
+
+// ============================================
+// Setup Telecaller Namespace
+// ============================================
 
 export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData> => {
 
@@ -34,14 +36,15 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     const userId = socket.data.userId;
     const role = socket.data.role;
 
-    setOnline('TELECALLER', userId, socket.id);                                   // Update in-memory tracking
-    const isDbUpdated = await updateTelecallerPresenceInDB(userId, 'ONLINE');     // Update database presence tracking
+    setOnline('TELECALLER', userId, socket.id);
+
+    const [isDbUpdated, telecallerDetails] = await Promise.all([
+      updateTelecallerPresenceInDB(userId, 'ONLINE'),
+      getTelecallerDetailsForBroadcast(userId)
+    ]);
 
     if (isDbUpdated) {
       console.log(`🟢 Telecaller connected: ${socket.id} | User ID: ${userId} | Role: ${role}`);
-
-      // Fetch telecaller details and broadcast to all users
-      const telecallerDetails = await getTelecallerDetailsForBroadcast(userId);
 
       if (telecallerDetails) {
         broadcastPresenceToUsers({
@@ -49,15 +52,15 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
           presence: 'ONLINE',
           telecaller: telecallerDetails
         });
-      };
+      }
     } else {
       console.log(`🟡 Telecaller connected (DB update failed): ${socket.id} | User ID: ${userId}`);
-    };
+    }
 
     // ============================================
     // Call Accept Handler
     // ============================================
-    socket.on('call:accept', async (data: CallAcceptPayload) => {
+    socket.on('call:accept', async (data: CallIdPayload) => {
       console.log(`📞 Call accept request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -101,7 +104,7 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     // ============================================
     // Call Reject Handler
     // ============================================
-    socket.on('call:reject', async (data: CallRejectPayload) => {
+    socket.on('call:reject', async (data: CallIdPayload) => {
       console.log(`📞 Call reject request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -131,7 +134,7 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     // ============================================
     // Call End Handler
     // ============================================
-    socket.on('call:end', async (data: CallEndPayload) => {
+    socket.on('call:end', async (data: CallIdPayload) => {
       console.log(`📞 Call end request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -164,14 +167,20 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
       });
     });
 
+    // ============================================
+    // Disconnect Handler
+    // ============================================
     socket.on('disconnect', async (reason) => {
-      setOffline('TELECALLER', userId);                                           // Update in-memory tracking
-      const isDbUpdated = await updateTelecallerPresenceInDB(userId, 'OFFLINE');  // Update database presence
+      setOffline('TELECALLER', userId);
+
+      const [isDbUpdated] = await Promise.all([
+        updateTelecallerPresenceInDB(userId, 'OFFLINE'),
+        handleTelecallerDisconnectDuringCall(userId)
+      ]);
 
       if (isDbUpdated) {
         console.log(`🔴 Telecaller disconnected: ${socket.id} | User ID: ${userId} | Reason: ${reason}`);
 
-        // Broadcast offline status to all users
         broadcastPresenceToUsers({
           telecallerId: userId,
           presence: 'OFFLINE',
@@ -180,10 +189,11 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
       } else {
         console.log(`🟠 Telecaller disconnected (DB update failed): ${socket.id} | User ID: ${userId}`);
       }
-
-      await handleTelecallerDisconnectDuringCall(userId);
     });
 
+    // ============================================
+    // Error Handler
+    // ============================================
     socket.on('error', (error) => {
       console.error('🟠 Socket error:', error);
       socket.emit('error', { message: 'An error occurred' });
@@ -194,7 +204,10 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
   return telecallerNamespace;
 };
 
-// Use this to emit events to telecaller app from anywhere in the app
-export const getTelecallerNamespace = (io: SocketIOServer) => {
+// ============================================
+// Get Telecaller Namespace Instance
+// ============================================
+
+export const getTelecallerNamespace = (io: SocketIOServer): Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData> => {
   return io.of('/telecaller') as Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData>;
 };

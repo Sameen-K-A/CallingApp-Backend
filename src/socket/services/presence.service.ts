@@ -8,45 +8,43 @@ type PresenceRoleType = 'USER' | 'TELECALLER';
 const onlineUsers = new Map<string, string>();       // userId -> socketId
 const onlineTelecallers = new Map<string, string>(); // userId -> socketId
 
+const getMap = (type: PresenceRoleType): Map<string, string> => {
+  return type === 'USER' ? onlineUsers : onlineTelecallers;
+};
+
+// ============================================
 // In-Memory Operations
 // ============================================
 
 export const setOnline = (type: PresenceRoleType, userId: string, socketId: string): void => {
-  const map = type === 'USER' ? onlineUsers : onlineTelecallers;
-  map.set(userId, socketId);
+  getMap(type).set(userId, socketId);
 };
 
 export const setOffline = (type: PresenceRoleType, userId: string): void => {
-  const map = type === 'USER' ? onlineUsers : onlineTelecallers;
-  map.delete(userId);
+  getMap(type).delete(userId);
 };
 
 export const getOnlineCount = (type: PresenceRoleType): number => {
-  const map = type === 'USER' ? onlineUsers : onlineTelecallers;
-  return map.size;
+  return getMap(type).size;
 };
 
 export const getSocketId = (type: PresenceRoleType, userId: string): string | undefined => {
-  const map = type === 'USER' ? onlineUsers : onlineTelecallers;
-  return map.get(userId);
+  return getMap(type).get(userId);
 };
 
 export const isOnline = (type: PresenceRoleType, userId: string): boolean => {
-  const map = type === 'USER' ? onlineUsers : onlineTelecallers;
-  return map.has(userId);
+  return getMap(type).has(userId);
 };
 
 export const getAllOnlineUserIds = (type: PresenceRoleType): string[] => {
-  const map = type === 'USER' ? onlineUsers : onlineTelecallers;
-  return Array.from(map.keys());
+  return Array.from(getMap(type).keys());
 };
 
 export const getAllOnlineSocketIds = (type: PresenceRoleType): string[] => {
-  const map = type === 'USER' ? onlineUsers : onlineTelecallers;
-  return Array.from(map.values());
+  return Array.from(getMap(type).values());
 };
 
-
+// ============================================
 // Database Operations
 // ============================================
 
@@ -81,14 +79,16 @@ export const resetAllTelecallerPresence = async (): Promise<void> => {
     // Clear in-memory maps
     onlineTelecallers.clear();
     onlineUsers.clear();
-
   } catch (error) {
     console.error('❌ Failed to reset telecaller presence:', error);
     throw error;
   }
 };
 
-// Collecting Telecaller Details for Broadcast to user when telecaller presence change to ONLINE
+// ============================================
+// Telecaller Details for Broadcast
+// ============================================
+
 export const getTelecallerDetailsForBroadcast = async (userId: string): Promise<TelecallerBroadcastData | null> => {
   try {
     const telecaller = await UserModel
@@ -119,11 +119,10 @@ export const getTelecallerDetailsForBroadcast = async (userId: string): Promise<
   }
 };
 
-
-// Brodcast socket operations
+// ============================================
+// Broadcast Operations
 // ============================================
 
-// Broadcast Presence to All Connected Users
 export const broadcastPresenceToUsers = (payload: TelecallerPresenceChangePayload): void => {
   try {
     const io = getIOInstance();

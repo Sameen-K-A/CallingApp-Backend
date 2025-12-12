@@ -5,8 +5,7 @@ import {
   UserToServerEvents,
   UserSocketData,
   CallInitiatePayload,
-  CallCancelPayload,
-  CallEndPayload,
+  CallIdPayload,
 } from '../types/user.events';
 import { broadcastPresenceToUsers, setOffline, setOnline } from '../services/presence.service';
 import {
@@ -16,6 +15,10 @@ import {
   handleUserDisconnectDuringCall,
 } from '../services/call.service';
 import { getIOInstance } from '../index';
+
+// ============================================
+// Setup User Namespace
+// ============================================
 
 export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEvents, ServerToUserEvents, {}, UserSocketData> => {
 
@@ -37,7 +40,6 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     socket.on('call:initiate', async (data: CallInitiatePayload) => {
       console.log(`📞 Call initiate request: ${userId} → ${data.telecallerId} | Type: ${data.callType}`);
 
-      // Validate payload
       if (!data.telecallerId || !data.callType) {
         socket.emit('call:error', { message: 'Invalid call request' });
         return;
@@ -48,7 +50,6 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
         return;
       }
 
-      // Initiate call
       const result = await initiateCall(userId, data.telecallerId, data.callType);
 
       if (!result.success || !result.callId) {
@@ -57,7 +58,6 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
         return;
       }
 
-      // Emit call:incoming to telecaller
       const io = getIOInstance();
       const telecallerNamespace = io.of('/telecaller');
 
@@ -73,7 +73,6 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
 
       console.log(`📤 Emitted call:incoming to telecaller: ${result.telecaller!.socketId}`);
 
-      // Emit call:ringing to user (confirmation)
       socket.emit('call:ringing', {
         callId: result.callId,
         telecaller: {
@@ -89,7 +88,7 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     // ============================================
     // Call Cancel Handler
     // ============================================
-    socket.on('call:cancel', async (data: CallCancelPayload) => {
+    socket.on('call:cancel', async (data: CallIdPayload) => {
       console.log(`📞 Call cancel request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -119,7 +118,7 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     // ============================================
     // Call End Handler
     // ============================================
-    socket.on('call:end', async (data: CallEndPayload) => {
+    socket.on('call:end', async (data: CallIdPayload) => {
       console.log(`📞 Call end request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -177,7 +176,10 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
   return userNamespace;
 };
 
-// Use this to emit events to user application from anywhere in the app
-export const getUserNamespace = (io: SocketIOServer) => {
+// ============================================
+// Get User Namespace Instance
+// ============================================
+
+export const getUserNamespace = (io: SocketIOServer): Namespace<UserToServerEvents, ServerToUserEvents, {}, UserSocketData> => {
   return io.of('/user') as Namespace<UserToServerEvents, ServerToUserEvents, {}, UserSocketData>;
 };

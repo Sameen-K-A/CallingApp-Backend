@@ -1,67 +1,44 @@
-export interface CallIncomingPayload {    // Server → Client: Incoming call from user
+import { CallIdPayload, MessagePayload } from './user.events';
+
+// Caller Related Payloads
+export interface CallerBasicInfo {
+  _id: string;
+  name: string;
+  profile: string | null;
+};
+
+// Call Related Payloads
+// Server → Telecaller: Incoming call from user ========== & =========== Server → Telecaller: Call accepted confirmation with details
+export interface CallDetailsPayload {
   callId: string;
   callType: 'AUDIO' | 'VIDEO';
-  caller: {
-    _id: string;
-    name: string;
-    profile: string | null;
-  };
+  caller: CallerBasicInfo;
 };
 
-export interface CallAcceptPayload {
-  callId: string;
-};
-
-export interface CallRejectPayload {
-  callId: string;
-};
-
-export interface CallAcceptedPayload {
-  callId: string;
-  callType: 'AUDIO' | 'VIDEO';
-  caller: {
-    _id: string;
-    name: string;
-    profile: string | null;
-  };
-};
-
-export interface CallMissedPayload {
-  callId: string;
-};
-
-export interface CallCancelledPayload {
-  callId: string;
-};
-
-export interface CallEndPayload {
-  callId: string;
-};
-
-export interface CallEndedPayload {
-  callId: string;
-};
-
-// Server → Tele caller Events
+// ============================================
+// Server → Telecaller Events
+// ============================================
 export interface ServerToTelecallerEvents {
-  'error': (data: { message: string }) => void;
-  'call:incoming': (data: CallIncomingPayload) => void;
-  'call:accepted': (data: CallAcceptedPayload) => void;
-  'call:missed': (data: CallMissedPayload) => void;
-  'call:cancelled': (data: CallCancelledPayload) => void;
-  'call:ended': (data: CallEndedPayload) => void;
+  'error': (data: MessagePayload) => void;
+  'call:incoming': (data: CallDetailsPayload) => void;
+  'call:accepted': (data: CallDetailsPayload) => void;
+  'call:missed': (data: CallIdPayload) => void;
+  'call:cancelled': (data: CallIdPayload) => void;
+  'call:ended': (data: CallIdPayload) => void;
 };
 
-// Tele caller → Server Events
+// ============================================
+// Telecaller → Server Events
+// ============================================
 export interface TelecallerToServerEvents {
-  'call:accept': (data: CallAcceptPayload) => void;
-  'call:reject': (data: CallRejectPayload) => void;
-  'call:end': (data: CallEndPayload) => void;
+  'call:accept': (data: CallIdPayload) => void;
+  'call:reject': (data: CallIdPayload) => void;
+  'call:end': (data: CallIdPayload) => void;
 };
 
-
-
-// ============================= Socket Data (attached to each Tele caller socket) ========================
+// ============================================
+// Socket Data (attached to each telecaller socket)
+// ============================================
 export interface TelecallerSocketData {
   userId: string;
   role: 'TELECALLER';
