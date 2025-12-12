@@ -5,9 +5,10 @@ import {
   UserToServerEvents,
   UserSocketData,
   CallInitiatePayload,
+  CallCancelPayload,
 } from '../types/user.events';
 import { setOffline, setOnline } from '../services/presence.service';
-import { initiateCall } from '../services/call.service';
+import { cancelCall, handleUserDisconnectDuringCall, initiateCall } from '../services/call.service';
 import { getIOInstance } from '../index';
 
 export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEvents, ServerToUserEvents, {}, UserSocketData> => {
@@ -24,6 +25,9 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     setOnline('USER', userId, socket.id);
     console.log(`🟢 User connected: ${socket.id} | User ID: ${userId} | Role: ${role}`);
 
+    // ============================================
+    // Call Initiate Handler
+    // ============================================
     socket.on('call:initiate', async (data: CallInitiatePayload) => {
       console.log(`📞 Call initiate request: ${userId} → ${data.telecallerId} | Type: ${data.callType}`);
 
@@ -76,11 +80,49 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
       console.log(`📤 Emitted call:ringing to user: ${socket.id}`);
     });
 
-    socket.on('disconnect', (reason) => {
-      setOffline('USER', userId);
-      console.log(`🔴 User disconnected: ${socket.id} - Reason: ${reason}`);
+    // ============================================
+    // Call Cancel Handler
+    // ============================================
+    socket.on('call:cancel', async (data: CallCancelPayload) => {
+      console.log(`📞 Call cancel request: ${userId} | Call ID: ${data.callId}`);
+
+      if (!data.callId) {
+        socket.emit('call:error', { message: 'Invalid call ID' });
+        return;
+      }
+
+      const result = await cancelCall(userId, data.callId);
+
+      if (!result.success) {
+        console.log(`❌ Call cancel failed: ${result.error}`);
+        return;
+      }
+
+      if (result.telecallerSocketId) {
+        const io = getIOInstance();
+        const telecallerNamespace = io.of('/telecaller');
+
+        telecallerNamespace.to(result.telecallerSocketId).emit('call:cancelled', {
+          callId: data.callId
+        });
+
+        console.log(`📤 Emitted call:cancelled to telecaller: ${result.telecallerSocketId}`);
+      }
     });
 
+    // ============================================
+    // Disconnect Handler
+    // ============================================
+    socket.on('disconnect', async (reason) => {
+      setOffline('USER', userId);
+      console.log(`🔴 User disconnected: ${socket.id} - Reason: ${reason}`);
+
+      await handleUserDisconnectDuringCall(userId);
+    });
+
+    // ============================================
+    // Error Handler
+    // ============================================
     socket.on('error', (error) => {
       console.error('🟠 Socket error:', error);
       socket.emit('error', { message: 'An error occurred' });

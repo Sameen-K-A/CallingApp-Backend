@@ -3,6 +3,7 @@ import UserModel from '../../models/user.model';
 import CallModel from '../../models/call.model';
 import { getSocketId } from './presence.service';
 import { ITelecaller } from '../../types/telecaller';
+import { getIOInstance } from '..';
 
 export interface UserCallDetails {
   _id: string;
@@ -29,6 +30,68 @@ export interface CallActionResult {
   };
   caller?: UserCallDetails;
   userSocketId?: string;
+  telecallerSocketId?: string;
+};
+
+// ============================================
+// Timer Management
+// ============================================
+
+const callTimers = new Map<string, NodeJS.Timeout>();
+
+export const startCallTimer = (callId: string, userId: string, telecallerId: string): void => {
+  const timer = setTimeout(async () => {
+    console.log(`⏰ Call timer expired: ${callId}`);
+    await handleMissedCall(callId, userId, telecallerId);
+  }, 30000); // 30 seconds
+
+  callTimers.set(callId, timer);
+  console.log(`⏰ Started 30s timer for call: ${callId}`);
+};
+
+export const clearCallTimer = (callId: string): void => {
+  const timer = callTimers.get(callId);
+  if (timer) {
+    clearTimeout(timer);
+    callTimers.delete(callId);
+    console.log(`⏰ Cleared timer for call: ${callId}`);
+  }
+};
+
+const handleMissedCall = async (callId: string, userId: string, telecallerId: string): Promise<void> => {
+  try {
+    const call = await CallModel
+      .findOne({ _id: callId, status: 'RINGING' })
+      .lean();
+
+    if (!call) {
+      console.log(`⏰ Call ${callId} no longer RINGING, skipping missed`);
+      return;
+    }
+
+    await CallModel.updateOne({ _id: callId }, { $set: { status: 'MISSED' } });
+
+    console.log(`📞 Call marked as MISSED: ${callId}`);
+
+    const io = getIOInstance();
+    const userNamespace = io.of('/user');
+    const telecallerNamespace = io.of('/telecaller');
+
+    const userSocketId = getSocketId('USER', userId);
+    const telecallerSocketId = getSocketId('TELECALLER', telecallerId);
+
+    if (userSocketId) {
+      userNamespace.to(userSocketId).emit('call:missed', { callId });
+    };
+
+    if (telecallerSocketId) {
+      telecallerNamespace.to(telecallerSocketId).emit('call:missed', { callId });
+    };
+
+    callTimers.delete(callId);
+  } catch (error) {
+    console.error('❌ Error handling missed call:', error);
+  }
 };
 
 export const getUserDetailsForCall = async (userId: string): Promise<UserCallDetails | null> => {
@@ -133,6 +196,8 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
 
     console.log(`📞 Call initiated: ${call._id} | ${userId} → ${telecallerId} | ${callType}`);
 
+    startCallTimer(call._id.toString(), userId, telecallerId);
+
     return {
       success: true,
       callId: call._id.toString(),
@@ -169,7 +234,9 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
 
     if (!call) {
       return { success: false, error: 'Call not found or already ended.' };
-    }
+    };
+
+    clearCallTimer(callId);
 
     await CallModel.updateOne(
       { _id: callId },
@@ -218,7 +285,9 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
 
     if (!call) {
       return { success: false, error: 'Call not found or already ended.' };
-    }
+    };
+
+    clearCallTimer(callId);
 
     await CallModel.updateOne({ _id: callId }, { $set: { status: 'REJECTED' } });
 
@@ -239,5 +308,106 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
   } catch (error) {
     console.error('❌ Error rejecting call:', error);
     return { success: false, error: 'Failed to reject call. Please try again.' };
+  }
+};
+
+export const cancelCall = async (userId: string, callId: string): Promise<CallActionResult> => {
+  try {
+    if (!Types.ObjectId.isValid(callId)) {
+      return { success: false, error: 'Something went wrong. Please try again.' };
+    };
+    if (!Types.ObjectId.isValid(userId)) {
+      return { success: false, error: 'Something went wrong. Please try again.' };
+    };
+
+    const call = await CallModel
+      .findOne({ _id: callId, userId: userId, status: 'RINGING' })
+      .lean();
+
+    if (!call) {
+      return { success: false, error: 'Call not found or already ended.' };
+    };
+
+    // Clear the 30 second timer
+    clearCallTimer(callId);
+    await CallModel.updateOne({ _id: callId }, { $set: { status: 'MISSED' } });
+
+    const telecallerSocketId = getSocketId('TELECALLER', call.telecallerId.toString());
+
+    console.log(`📞 Call cancelled by user: ${callId} | User: ${userId}`);
+
+    return {
+      success: true,
+      call: {
+        _id: callId,
+        callType: call.callType,
+        userId: userId,
+        telecallerId: call.telecallerId.toString()
+      },
+      telecallerSocketId
+    };
+  } catch (error) {
+    console.error('❌ Error cancelling call:', error);
+    return { success: false, error: 'Failed to cancel call. Please try again.' };
+  }
+};
+
+// ============================================
+// Handle Disconnect During Ringing
+// ============================================
+
+export const handleUserDisconnectDuringCall = async (userId: string): Promise<void> => {
+  try {
+    const ringingCall = await CallModel
+      .findOne({ userId: userId, status: 'RINGING' })
+      .lean();
+
+    if (!ringingCall) {
+      return;
+    }
+
+    const callId = ringingCall._id.toString();
+    clearCallTimer(callId);
+    await CallModel.updateOne({ _id: callId }, { $set: { status: 'MISSED' } });
+
+    console.log(`📞 Call auto-missed (user disconnected): ${callId}`);
+
+    const io = getIOInstance();
+    const telecallerNamespace = io.of('/telecaller');
+    const telecallerSocketId = getSocketId('TELECALLER', ringingCall.telecallerId.toString());
+
+    if (telecallerSocketId) {
+      telecallerNamespace.to(telecallerSocketId).emit('call:cancelled', { callId });
+    }
+  } catch (error) {
+    console.error('❌ Error handling user disconnect during call:', error);
+  }
+};
+
+export const handleTelecallerDisconnectDuringCall = async (telecallerId: string): Promise<void> => {
+  try {
+    const ringingCall = await CallModel
+      .findOne({ telecallerId: telecallerId, status: 'RINGING' })
+      .lean();
+
+    if (!ringingCall) {
+      return;
+    }
+
+    const callId = ringingCall._id.toString();
+    clearCallTimer(callId);
+    await CallModel.updateOne({ _id: callId }, { $set: { status: 'MISSED' } });
+
+    console.log(`📞 Call auto-missed (telecaller disconnected): ${callId}`);
+
+    const io = getIOInstance();
+    const userNamespace = io.of('/user');
+    const userSocketId = getSocketId('USER', ringingCall.userId.toString());
+
+    if (userSocketId) {
+      userNamespace.to(userSocketId).emit('call:missed', { callId });
+    }
+  } catch (error) {
+    console.error('❌ Error handling telecaller disconnect during call:', error);
   }
 };

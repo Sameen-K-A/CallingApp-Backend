@@ -26,11 +26,21 @@ export interface CallAcceptedPayload {
   };
 };
 
+export interface CallMissedPayload {
+  callId: string;
+};
+
+export interface CallCancelledPayload {
+  callId: string;
+};
+
 // Server → Tele caller Events
 export interface ServerToTelecallerEvents {
   'error': (data: { message: string }) => void;
   'call:incoming': (data: CallIncomingPayload) => void;
   'call:accepted': (data: CallAcceptedPayload) => void;
+  'call:missed': (data: CallMissedPayload) => void;
+  'call:cancelled': (data: CallCancelledPayload) => void;
 };
 
 // Tele caller → Server Events

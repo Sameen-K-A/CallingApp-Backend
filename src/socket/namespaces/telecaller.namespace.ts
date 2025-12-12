@@ -14,7 +14,7 @@ import {
   getTelecallerDetailsForBroadcast,
   broadcastPresenceToUsers
 } from '../services/presence.service';
-import { acceptCall, rejectCall } from '../services/call.service';
+import { acceptCall, rejectCall, handleTelecallerDisconnectDuringCall } from '../services/call.service';
 import { getIOInstance } from '../index';
 
 export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<TelecallerToServerEvents, ServerToTelecallerEvents, {}, TelecallerSocketData> => {
@@ -138,6 +138,8 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
       } else {
         console.log(`🟠 Telecaller disconnected (DB update failed): ${socket.id} | User ID: ${userId}`);
       }
+
+      await handleTelecallerDisconnectDuringCall(userId);
     });
 
     socket.on('error', (error) => {

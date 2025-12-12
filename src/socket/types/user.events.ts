@@ -38,6 +38,14 @@ export interface CallRejectedPayload {
   callId: string;
 };
 
+export interface CallCancelPayload {
+  callId: string;
+}
+
+export interface CallMissedPayload {
+  callId: string;
+}
+
 // ============================= Server → User Events ========================
 export interface ServerToUserEvents {
   'error': (data: { message: string }) => void;
@@ -46,11 +54,13 @@ export interface ServerToUserEvents {
   'call:error': (data: CallErrorPayload) => void;
   'call:accepted': (data: CallAcceptedPayload) => void;
   'call:rejected': (data: CallRejectedPayload) => void;
+  'call:missed': (data: CallMissedPayload) => void;
 };
 
 // ============================= User → Server Events ========================
 export interface UserToServerEvents {
   'call:initiate': (data: CallInitiatePayload, callback?: (response: { success: boolean; message?: string }) => void) => void;
+  'call:cancel': (data: CallCancelPayload) => void;
 };
 
 
