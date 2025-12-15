@@ -81,24 +81,31 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
         telecaller: null
       });
 
-      if (result.userSocketId) {
+      if (result.userSocketId && result.userLiveKit) {
         const io = getIOInstance();
         const userNamespace = io.of('/user');
 
+        console.log('📤 Sending call:accepted to USER socket:', result.userSocketId);
+        console.log('📤 USER token exists:', !!result.userLiveKit.token);
+
         userNamespace.to(result.userSocketId).emit('call:accepted', {
-          callId: data.callId
+          callId: data.callId,
+          livekit: result.userLiveKit,
         });
 
-        console.log(`📤 Emitted call:accepted to user: ${result.userSocketId}`);
+        console.log('✅ Emitted call:accepted to USER');
+      } else {
+        console.log('❌ Cannot send to USER - socketId:', result.userSocketId, 'token:', !!result.userLiveKit);
       }
 
       socket.emit('call:accepted', {
         callId: data.callId,
         callType: result.call.callType,
-        caller: result.caller!
+        caller: result.caller!,
+        livekit: result.telecallerLiveKit!,
       });
 
-      console.log(`📤 Emitted call:accepted to telecaller: ${socket.id}`);
+      console.log('✅ Emitted call:accepted to TELECALLER');
     });
 
     // ============================================

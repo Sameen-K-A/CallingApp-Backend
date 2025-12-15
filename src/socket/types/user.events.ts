@@ -1,3 +1,5 @@
+import { LiveKitCredentials } from "../../services/livekit.service";
+
 // Base/Shared Payload Types
 export interface CallIdPayload {
   callId: string;
@@ -39,6 +41,7 @@ export interface CallInitiatePayload {
 export interface CallRingingPayload {
   callId: string;
   telecaller: TelecallerBasicInfo;
+  livekit?: LiveKitCredentials;
 };
 
 // ============================================
@@ -49,7 +52,7 @@ export interface ServerToUserEvents {
   'telecaller:presence-changed': (data: TelecallerPresenceChangePayload) => void;
   'call:ringing': (data: CallRingingPayload) => void;
   'call:error': (data: MessagePayload) => void;
-  'call:accepted': (data: CallIdPayload) => void;
+  'call:accepted': (data: CallIdPayload & { livekit: LiveKitCredentials }) => void;
   'call:rejected': (data: CallIdPayload) => void;
   'call:missed': (data: CallIdPayload) => void;
   'call:ended': (data: CallIdPayload) => void;

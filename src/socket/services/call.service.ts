@@ -4,6 +4,7 @@ import CallModel from '../../models/call.model';
 import { getSocketId } from './presence.service';
 import { ITelecaller } from '../../types/telecaller';
 import { getIOInstance } from '..';
+import { generateLiveKitToken, LiveKitCredentials } from '../../services/livekit.service';
 
 export interface UserCallDetails {
   _id: string;
@@ -15,8 +16,14 @@ export interface CallInitiateResult {
   success: boolean;
   callId?: string;
   error?: string;
-  telecaller?: UserCallDetails & { socketId: string };
-  caller?: UserCallDetails;
+  roomName?: string;
+  telecaller?: UserCallDetails & {
+    socketId: string;
+    livekit?: LiveKitCredentials;
+  };
+  caller?: UserCallDetails & {
+    livekit?: LiveKitCredentials;
+  };
 };
 
 export interface CallActionResult {
@@ -27,10 +34,13 @@ export interface CallActionResult {
     callType: 'AUDIO' | 'VIDEO';
     userId: string;
     telecallerId: string;
+    roomName: string;
   };
   caller?: UserCallDetails;
   userSocketId?: string;
   telecallerSocketId?: string;
+  userLiveKit?: LiveKitCredentials;
+  telecallerLiveKit?: LiveKitCredentials;
 };
 
 export interface CallEndResult {
@@ -220,13 +230,16 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
       status: 'RINGING'
     });
 
-    console.log(`📞 Call initiated: ${call._id} | ${userId} → ${telecallerId} | ${callType}`);
+    const callId = call._id.toString();
+    const roomName = callId;
 
-    startCallTimer(call._id.toString(), userId, telecallerId);
+    console.log(`📞 Call initiated: ${callId} | Room: ${roomName} | ${userId} → ${telecallerId} | ${callType}`);
+    startCallTimer(callId, userId, telecallerId);
 
     return {
       success: true,
-      callId: call._id.toString(),
+      callId: callId,
+      roomName: roomName,
       telecaller: {
         _id: telecallerId,
         name: telecaller.name || 'Unknown',
@@ -258,22 +271,38 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
     const call = await CallModel
       .findOneAndUpdate(
         { _id: callId, telecallerId: telecallerId, status: 'RINGING' },
-        { $set: { status: 'ACCEPTED', acceptedAt: new Date() } }, { new: false })
-      .lean();
+        { $set: { status: 'ACCEPTED', acceptedAt: new Date() } },
+        { new: true }
+      ).lean();
 
     if (!call) {
       return createErrorResult('Call not found or already ended.');
     }
 
     clearCallTimer(callId);
+    const roomName = call._id.toString();
 
     // Run remaining operations in parallel
-    const [, caller] = await Promise.all([
+    const [, caller, telecallerDetails] = await Promise.all([
       UserModel.updateOne(
         { _id: telecallerId, role: 'TELECALLER' },
         { $set: { 'telecallerProfile.presence': 'ON_CALL' } }
       ),
-      getUserDetailsForCall(call.userId.toString())
+      getUserDetailsForCall(call.userId.toString()),
+      getTelecallerDetailsForCall(telecallerId)
+    ]);
+
+    const [userLiveKit, telecallerLiveKit] = await Promise.all([
+      generateLiveKitToken({
+        roomName: roomName,
+        participantId: call.userId.toString(),
+        participantName: caller?.name || 'Unknown User',
+      }),
+      generateLiveKitToken({
+        roomName: roomName,
+        participantId: telecallerId,
+        participantName: telecallerDetails?.name || 'Unknown Telecaller',
+      }),
     ]);
 
     const userSocketId = getSocketId('USER', call.userId.toString());
@@ -286,10 +315,13 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
         _id: callId,
         callType: call.callType,
         userId: call.userId.toString(),
-        telecallerId: telecallerId
+        telecallerId: telecallerId,
+        roomName: roomName
       },
       caller: caller || { _id: call.userId.toString(), name: 'Unknown', profile: null },
-      userSocketId: userSocketId
+      userSocketId: userSocketId,
+      userLiveKit,
+      telecallerLiveKit,
     };
   } catch (error) {
     console.error('❌ Error accepting call:', error);
@@ -318,6 +350,7 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
     clearCallTimer(callId);
 
     const userSocketId = getSocketId('USER', call.userId.toString());
+    const roomName = call._id.toString();
 
     console.log(`📞 Call rejected: ${callId} | Telecaller: ${telecallerId}`);
 
@@ -327,7 +360,8 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
         _id: callId,
         callType: call.callType,
         userId: call.userId.toString(),
-        telecallerId: telecallerId
+        telecallerId: telecallerId,
+        roomName: roomName
       },
       userSocketId: userSocketId
     };
@@ -358,6 +392,7 @@ export const cancelCall = async (userId: string, callId: string): Promise<CallAc
     clearCallTimer(callId);
 
     const telecallerSocketId = getSocketId('TELECALLER', call.telecallerId.toString());
+    const roomName = call._id.toString();
 
     console.log(`📞 Call cancelled by user: ${callId} | User: ${userId}`);
 
@@ -367,7 +402,8 @@ export const cancelCall = async (userId: string, callId: string): Promise<CallAc
         _id: callId,
         callType: call.callType,
         userId: userId,
-        telecallerId: call.telecallerId.toString()
+        telecallerId: call.telecallerId.toString(),
+        roomName: roomName
       },
       telecallerSocketId
     };

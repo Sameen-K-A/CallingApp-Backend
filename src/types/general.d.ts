@@ -84,7 +84,6 @@ export interface ICall extends Document {
   durationInSeconds: number;
   coinsSpent: number;
   coinsEarned: number;
-  roomId?: string;
   userFeedback?: string;
   telecallerFeedback?: string;
   acceptedAt?: Date;

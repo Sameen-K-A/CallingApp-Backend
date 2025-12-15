@@ -42,11 +42,6 @@ const callSchema = new Schema<ICall>(
       default: 0,
       min: 0,
     },
-    roomId: {
-      type: String,
-      index: true,
-      sparse: true,
-    },
     userFeedback: {
       type: String,
       maxlength: 500,

@@ -1,4 +1,5 @@
 import { CallIdPayload, MessagePayload } from './user.events';
+import { LiveKitCredentials } from '../../services/livekit.service';
 
 // Caller Related Payloads
 export interface CallerBasicInfo {
@@ -13,6 +14,7 @@ export interface CallDetailsPayload {
   callId: string;
   callType: 'AUDIO' | 'VIDEO';
   caller: CallerBasicInfo;
+  livekit?: LiveKitCredentials;
 };
 
 // ============================================
