@@ -27,11 +27,11 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
   userNamespace.use(socketAuthMiddleware);
   userNamespace.use(requireRole(['USER']));
 
-  userNamespace.on('connection', (socket) => {
+  userNamespace.on('connection', async (socket) => {
     const userId = socket.data.userId;
     const role = socket.data.role;
 
-    setOnline('USER', userId, socket.id);
+    await setOnline('USER', userId, socket.id);
     console.log(`🟢 User connected: ${socket.id} | User ID: ${userId} | Role: ${role}`);
 
     // ============================================
@@ -61,17 +61,19 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
       const io = getIOInstance();
       const telecallerNamespace = io.of('/telecaller');
 
-      telecallerNamespace.to(result.telecaller!.socketId).emit('call:incoming', {
-        callId: result.callId,
-        callType: data.callType,
-        caller: {
-          _id: result.caller!._id,
-          name: result.caller!.name,
-          profile: result.caller!.profile
-        }
-      });
-
-      console.log(`📤 Emitted call:incoming to telecaller: ${result.telecaller!.socketId}`);
+      // result.telecaller.socketId comes from initiateCall which fetches from Redis
+      if (result.telecaller?.socketId) {
+        telecallerNamespace.to(result.telecaller.socketId).emit('call:incoming', {
+          callId: result.callId,
+          callType: data.callType,
+          caller: {
+            _id: result.caller!._id,
+            name: result.caller!.name,
+            profile: result.caller!.profile
+          }
+        });
+        console.log(`📤 Emitted call:incoming to telecaller: ${result.telecaller.socketId}`);
+      }
 
       socket.emit('call:ringing', {
         callId: result.callId,
@@ -157,7 +159,7 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     // Disconnect Handler
     // ============================================
     socket.on('disconnect', async (reason) => {
-      setOffline('USER', userId);
+      await setOffline('USER', userId);
       console.log(`🔴 User disconnected: ${socket.id} - Reason: ${reason}`);
 
       await handleUserDisconnectDuringCall(userId);

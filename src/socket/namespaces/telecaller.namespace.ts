@@ -36,7 +36,7 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     const userId = socket.data.userId;
     const role = socket.data.role;
 
-    setOnline('TELECALLER', userId, socket.id);
+    await setOnline('TELECALLER', userId, socket.id);
 
     const [isDbUpdated, telecallerDetails] = await Promise.all([
       updateTelecallerPresenceInDB(userId, 'ONLINE'),
@@ -86,7 +86,6 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
         const userNamespace = io.of('/user');
 
         console.log('📤 Sending call:accepted to USER socket:', result.userSocketId);
-        console.log('📤 USER token exists:', !!result.userLiveKit.token);
 
         userNamespace.to(result.userSocketId).emit('call:accepted', {
           callId: data.callId,
@@ -94,8 +93,6 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
         });
 
         console.log('✅ Emitted call:accepted to USER');
-      } else {
-        console.log('❌ Cannot send to USER - socketId:', result.userSocketId, 'token:', !!result.userLiveKit);
       }
 
       socket.emit('call:accepted', {
@@ -178,7 +175,7 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     // Disconnect Handler
     // ============================================
     socket.on('disconnect', async (reason) => {
-      setOffline('TELECALLER', userId);
+      await setOffline('TELECALLER', userId);
 
       const [isDbUpdated] = await Promise.all([
         updateTelecallerPresenceInDB(userId, 'OFFLINE'),

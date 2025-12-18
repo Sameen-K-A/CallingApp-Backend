@@ -1,3 +1,4 @@
+import redis, { REDIS_KEYS } from "../../config/redis.config";
 import UserModel from "../../models/user.model";
 import { ITelecaller } from "../../types/telecaller";
 import { getIOInstance } from '../index';
@@ -5,43 +6,64 @@ import { TelecallerBroadcastData, TelecallerPresenceChangePayload } from '../typ
 
 type PresenceRoleType = 'USER' | 'TELECALLER';
 
-const onlineUsers = new Map<string, string>();       // userId -> socketId
-const onlineTelecallers = new Map<string, string>(); // userId -> socketId
-
-const getMap = (type: PresenceRoleType): Map<string, string> => {
-  return type === 'USER' ? onlineUsers : onlineTelecallers;
-};
-
 // ============================================
-// In-Memory Operations
+// Redis Operations
 // ============================================
 
-export const setOnline = (type: PresenceRoleType, userId: string, socketId: string): void => {
-  getMap(type).set(userId, socketId);
+export const setOnline = async (type: PresenceRoleType, userId: string, socketId: string): Promise<void> => {
+  try {
+    const key = type === 'USER' ? REDIS_KEYS.USER_SOCKET(userId) : REDIS_KEYS.TELECALLER_SOCKET(userId);
+    const reverseKey = type === 'USER' ? REDIS_KEYS.SOCKET_USER(socketId) : REDIS_KEYS.SOCKET_TELECALLER(socketId);
+
+    // Set userId -> socketId
+    await redis.set(key, socketId);
+
+    // Set socketId -> userId (for disconnect handling)
+    // Expire in 24 hours just in case of stale keys
+    await redis.setex(reverseKey, 86400, userId);
+  } catch (error) {
+    console.error(`❌ Redis setOnline error for ${type} ${userId}:`, error);
+  }
 };
 
-export const setOffline = (type: PresenceRoleType, userId: string): void => {
-  getMap(type).delete(userId);
+export const setOffline = async (type: PresenceRoleType, userId: string): Promise<void> => {
+  try {
+    const key = type === 'USER' ? REDIS_KEYS.USER_SOCKET(userId) : REDIS_KEYS.TELECALLER_SOCKET(userId);
+    await redis.del(key);
+  } catch (error) {
+    console.error(`❌ Redis setOffline error for ${type} ${userId}:`, error);
+  }
 };
 
-export const getOnlineCount = (type: PresenceRoleType): number => {
-  return getMap(type).size;
+export const getSocketId = async (type: PresenceRoleType, userId: string): Promise<string | null> => {
+  try {
+    const key = type === 'USER' ? REDIS_KEYS.USER_SOCKET(userId) : REDIS_KEYS.TELECALLER_SOCKET(userId);
+    return await redis.get(key);
+  } catch (error) {
+    console.error(`❌ Redis getSocketId error for ${type} ${userId}:`, error);
+    return null;
+  }
 };
 
-export const getSocketId = (type: PresenceRoleType, userId: string): string | undefined => {
-  return getMap(type).get(userId);
+export const isOnline = async (type: PresenceRoleType, userId: string): Promise<boolean> => {
+  try {
+    const socketId = await getSocketId(type, userId);
+    return socketId !== null;
+  } catch (error) {
+    console.error(`❌ Redis isOnline error for ${type} ${userId}:`, error);
+    return false;
+  }
 };
 
-export const isOnline = (type: PresenceRoleType, userId: string): boolean => {
-  return getMap(type).has(userId);
-};
-
-export const getAllOnlineUserIds = (type: PresenceRoleType): string[] => {
-  return Array.from(getMap(type).keys());
-};
-
-export const getAllOnlineSocketIds = (type: PresenceRoleType): string[] => {
-  return Array.from(getMap(type).values());
+export const getOnlineCount = async (type: PresenceRoleType): Promise<number> => {
+  try {
+    const pattern = type === 'USER' ? 'presence:user:*' : 'presence:telecaller:*';
+    const keys = await redis.keys(pattern);
+    return keys.length;
+  } catch (error) {
+    console.error(`❌ Redis getOnlineCount error for ${type}:`, error);
+    return 0;
+  }
 };
 
 // ============================================
@@ -69,19 +91,22 @@ export const updateTelecallerPresenceInDB = async (userId: string, presence: ITe
 
 export const resetAllTelecallerPresence = async (): Promise<void> => {
   try {
+    // 1. Reset DB
     const result = await UserModel.updateMany(
       { role: 'TELECALLER', 'telecallerProfile.presence': { $ne: 'OFFLINE' } },
       { $set: { 'telecallerProfile.presence': 'OFFLINE' } }
     );
 
-    console.log(`🧹 Reset ${result.modifiedCount} telecaller(s) presence to OFFLINE`);
+    console.log(`🧹 Reset ${result.modifiedCount} telecaller(s) presence to OFFLINE in DB`);
 
-    // Clear in-memory maps
-    onlineTelecallers.clear();
-    onlineUsers.clear();
+    // 2. Clear Redis Presence Keys
+    const keys = await redis.keys('presence:*');
+    if (keys.length > 0) {
+      await redis.del(keys);
+      console.log(`🧹 Cleared ${keys.length} presence keys from Redis`);
+    }
   } catch (error) {
     console.error('❌ Failed to reset telecaller presence:', error);
-    throw error;
   }
 };
 

@@ -23,12 +23,22 @@ export const setupAdminNamespace = (io: SocketIOServer): Namespace<AdminToServer
     // ============================================
     // Presence Request Handler
     // ============================================
-    socket.on('presence:request-counts', () => {
-      socket.emit('presence:counts', {
-        onlineUsers: getOnlineCount('USER'),
-        onlineTelecallers: getOnlineCount('TELECALLER'),
-        timestamp: new Date()
-      });
+    socket.on('presence:request-counts', async () => {
+      try {
+        const [onlineUsers, onlineTelecallers] = await Promise.all([
+          getOnlineCount('USER'),
+          getOnlineCount('TELECALLER')
+        ]);
+
+        socket.emit('presence:counts', {
+          onlineUsers,
+          onlineTelecallers,
+          timestamp: new Date()
+        });
+      } catch (error) {
+        console.error('❌ Error getting presence counts:', error);
+        socket.emit('error', { message: 'Failed to fetch presence counts' });
+      }
     });
 
     // ============================================
