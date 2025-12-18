@@ -15,6 +15,7 @@ import {
   handleUserDisconnectDuringCall,
 } from '../services/call.service';
 import { getIOInstance } from '../index';
+import { callActionLimiter, callInitiateLimiter } from '../../middleware/rateLimiter';
 
 // ============================================
 // Setup User Namespace
@@ -38,6 +39,14 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     // Call Initiate Handler
     // ============================================
     socket.on('call:initiate', async (data: CallInitiatePayload) => {
+      try {
+        await callInitiateLimiter.consume(userId);
+      } catch (rateLimiterRes) {
+        console.warn(`⚠️ Rate limit exceeded for user ${userId} on call:initiate`);
+        socket.emit('call:error', { message: 'Too many call attempts. Please wait a moment.' });
+        return;
+      }
+
       console.log(`📞 Call initiate request: ${userId} → ${data.telecallerId} | Type: ${data.callType}`);
 
       if (!data.telecallerId || !data.callType) {
@@ -91,6 +100,12 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     // Call Cancel Handler
     // ============================================
     socket.on('call:cancel', async (data: CallIdPayload) => {
+      try {
+        await callActionLimiter.consume(userId);
+      } catch (err) {
+        return;
+      }
+
       console.log(`📞 Call cancel request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -121,6 +136,12 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     // Call End Handler
     // ============================================
     socket.on('call:end', async (data: CallIdPayload) => {
+      try {
+        await callActionLimiter.consume(userId);
+      } catch (err) {
+        return;
+      }
+
       console.log(`📞 Call end request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {

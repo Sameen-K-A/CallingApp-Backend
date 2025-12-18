@@ -20,6 +20,7 @@ import {
   handleTelecallerDisconnectDuringCall,
 } from '../services/call.service';
 import { getIOInstance } from '../index';
+import { callActionLimiter } from '../../middleware/rateLimiter';
 
 // ============================================
 // Setup Telecaller Namespace
@@ -61,6 +62,13 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     // Call Accept Handler
     // ============================================
     socket.on('call:accept', async (data: CallIdPayload) => {
+      try {
+        await callActionLimiter.consume(userId);
+      } catch (err) {
+        socket.emit('error', { message: 'Too many requests. Please wait.' });
+        return;
+      }
+
       console.log(`📞 Call accept request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -109,6 +117,12 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     // Call Reject Handler
     // ============================================
     socket.on('call:reject', async (data: CallIdPayload) => {
+      try {
+        await callActionLimiter.consume(userId);
+      } catch (err) {
+        return;
+      }
+
       console.log(`📞 Call reject request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
@@ -139,6 +153,12 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     // Call End Handler
     // ============================================
     socket.on('call:end', async (data: CallIdPayload) => {
+      try {
+        await callActionLimiter.consume(userId);
+      } catch (err) {
+        return;
+      }
+
       console.log(`📞 Call end request: ${userId} | Call ID: ${data.callId}`);
 
       if (!data.callId) {
