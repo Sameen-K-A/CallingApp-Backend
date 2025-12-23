@@ -67,6 +67,25 @@ callSchema.index({ userId: 1, createdAt: -1 });
 callSchema.index({ telecallerId: 1, createdAt: -1 });
 callSchema.index({ status: 1, createdAt: -1 });
 
+// Unique partial indexes to prevent concurrent calls
+callSchema.index(
+  { telecallerId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ['RINGING', 'ACCEPTED'] } },
+    name: 'unique_active_telecaller_call'
+  }
+);
+
+callSchema.index(
+  { userId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ['RINGING', 'ACCEPTED'] } },
+    name: 'unique_active_user_call'
+  }
+);
+
 const CallModel: Model<ICall> = model<ICall>('Call', callSchema);
 
 export default CallModel;

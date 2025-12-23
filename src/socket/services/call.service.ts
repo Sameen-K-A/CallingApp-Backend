@@ -4,6 +4,7 @@ import CallModel from '../../models/call.model';
 import { getSocketId } from './presence.service';
 import { ITelecaller } from '../../types/telecaller';
 import { getIOInstance } from '..';
+import { destroyLiveKitRoom } from '../../services/livekit.service';
 import { generateLiveKitToken, LiveKitCredentials } from '../../services/livekit.service';
 import redis, { REDIS_KEYS } from '../../config/redis.config';
 
@@ -215,17 +216,7 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
       return createErrorResult('Something went wrong. Please try again.');
     }
 
-    const [existingUserCall, existingTelecallerCall, user, telecaller] = await Promise.all([
-      CallModel.findOne({
-        userId: userId,
-        status: { $in: ['RINGING', 'ACCEPTED'] }
-      }).lean(),
-
-      CallModel.findOne({
-        telecallerId: telecallerId,
-        status: { $in: ['RINGING', 'ACCEPTED'] }
-      }).lean(),
-
+    const [user, telecaller] = await Promise.all([
       UserModel
         .findOne(
           { _id: userId, role: 'USER', accountStatus: 'ACTIVE' },
@@ -240,14 +231,6 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
         )
         .lean() as Promise<(ITelecaller & { _id: Types.ObjectId }) | null>
     ]);
-
-    if (existingUserCall) {
-      return createErrorResult('You already have an active call.');
-    }
-
-    if (existingTelecallerCall) {
-      return createErrorResult('This person is busy. Please try again later.');
-    }
 
     if (!user) {
       return createErrorResult('Your account is not available. Please contact support.');
@@ -273,12 +256,27 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
       return createErrorResult(`${telecallerName} is currently unavailable. Please try again later.`);
     }
 
-    const call = await CallModel.create({
-      userId: new Types.ObjectId(userId),
-      telecallerId: new Types.ObjectId(telecallerId),
-      callType,
-      status: 'RINGING'
-    });
+    // TRY to create - MongoDB index will reject duplicates
+    let call;
+    try {
+      call = await CallModel.create({
+        userId: new Types.ObjectId(userId),
+        telecallerId: new Types.ObjectId(telecallerId),
+        callType,
+        status: 'RINGING'
+      });
+    } catch (error: any) {
+      if (error.code === 11000) { // Duplicate key error (code 11000) = concurrent call exists
+        if (error.keyPattern?.userId) {
+          return createErrorResult('You already have an active call.');
+        }
+        if (error.keyPattern?.telecallerId) {
+          return createErrorResult(`${telecallerName} is busy. Please try again.`);
+        }
+        return createErrorResult('Unable to connect. Please try again.');
+      }
+      throw error;
+    }
 
     const callId = call._id.toString();
     const roomName = callId;
@@ -318,25 +316,27 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
       return createErrorResult('Something went wrong. Please try again.');
     }
 
-    // Step 1: Validate call exists and is RINGING (read only)
-    const existingCall = await CallModel
-      .findOne({ _id: callId, telecallerId: telecallerId, status: 'RINGING' })
-      .lean();
+    const call = await CallModel.findOneAndUpdate(
+      { _id: callId, telecallerId: telecallerId, status: 'RINGING' },
+      { $set: { status: 'ACCEPTED', acceptedAt: new Date() } },
+      { new: true }
+    ).lean();
 
-    if (!existingCall) {
-      return createErrorResult('Call not found or already ended.');
+    if (!call) {
+      return createErrorResult('Call is no longer available.');
     }
 
-    const roomName = existingCall._id.toString();
+    await clearCallTimer(callId);
 
-    // Step 2: Get details and generate tokens in parallel
+    const roomName = call._id.toString();
+
     let userLiveKit: LiveKitCredentials;
     let telecallerLiveKit: LiveKitCredentials;
     let caller: UserCallDetails | null;
 
     try {
       const [callerDetails, telecallerDetails] = await Promise.all([
-        getUserDetailsForCall(existingCall.userId.toString()),
+        getUserDetailsForCall(call.userId.toString()),
         getTelecallerDetailsForCall(telecallerId)
       ]);
 
@@ -345,7 +345,7 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
       [userLiveKit, telecallerLiveKit] = await Promise.all([
         generateLiveKitToken({
           roomName: roomName,
-          participantId: existingCall.userId.toString(),
+          participantId: call.userId.toString(),
           participantName: callerDetails?.name || 'Unknown User',
         }),
         generateLiveKitToken({
@@ -356,25 +356,22 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
       ]);
     } catch (tokenError) {
       console.error('❌ Failed to generate LiveKit tokens:', tokenError);
+
+      // Rollback the call status since we can't proceed
+      await CallModel.updateOne(
+        { _id: callId },
+        { $set: { status: 'MISSED', endedAt: new Date() } }
+      );
+
+      // Reset telecaller presence
+      await UserModel.updateOne(
+        { _id: telecallerId, role: 'TELECALLER' },
+        { $set: { 'telecallerProfile.presence': 'ONLINE' } }
+      );
+
       return createErrorResult('Failed to setup call. Please try again.');
     }
 
-    // Step 3: Update call status to ACCEPTED (with status re-check)
-    const call = await CallModel
-      .findOneAndUpdate(
-        { _id: callId, telecallerId: telecallerId, status: 'RINGING' },
-        { $set: { status: 'ACCEPTED', acceptedAt: new Date() } },
-        { new: true }
-      ).lean();
-
-    if (!call) {
-      return createErrorResult('Call is no longer available.');
-    }
-
-    // Step 4: Clear timer
-    await clearCallTimer(callId);
-
-    // Step 5: Update presence to ON_CALL
     await UserModel.updateOne(
       { _id: telecallerId, role: 'TELECALLER' },
       { $set: { 'telecallerProfile.presence': 'ON_CALL' } }
@@ -519,7 +516,8 @@ export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', en
       UserModel.updateOne(
         { _id: call.telecallerId, role: 'TELECALLER' },
         { $set: { 'telecallerProfile.presence': 'ONLINE' } }
-      )
+      ),
+      destroyLiveKitRoom(call._id.toString())
     ]);
 
     console.log(`📞 Call ended: ${callId} | Duration: ${duration}s | Ended by: ${endedBy}`);
@@ -564,7 +562,8 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
         UserModel.updateOne(
           { _id: telecallerId, role: 'TELECALLER' },
           { $set: { 'telecallerProfile.presence': 'ONLINE' } }
-        )
+        ),
+        destroyLiveKitRoom(callId),
       ]);
 
       console.log(`📞 Call auto-ended (user disconnected): ${callId} | Duration: ${duration}s`);
@@ -633,6 +632,7 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
         { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } }
       );
 
+      destroyLiveKitRoom(callId);
       console.log(`📞 Call auto-ended (telecaller disconnected): ${callId} | Duration: ${duration}s`);
 
       const io = getIOInstance();

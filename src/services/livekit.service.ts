@@ -1,4 +1,4 @@
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -19,6 +19,12 @@ export interface LiveKitCredentials {
   url: string;
   roomName: string;
 }
+
+const roomService = new RoomServiceClient(
+  LIVEKIT_API_URL!,
+  LIVEKIT_API_KEY!,
+  LIVEKIT_API_SECRET!
+);
 
 export const generateLiveKitToken = async (payload: LiveKitTokenPayload): Promise<LiveKitCredentials> => {
   const { roomName, participantId, participantName } = payload;
@@ -44,4 +50,17 @@ export const generateLiveKitToken = async (payload: LiveKitTokenPayload): Promis
     url: LIVEKIT_API_URL!,
     roomName,
   };
+}
+
+export const destroyLiveKitRoom = async (roomName: string): Promise<void> => {
+  try {
+    await roomService.deleteRoom(roomName);
+    console.log(`🗑️ LiveKit room destroyed: ${roomName}`);
+  } catch (error: any) {
+    if (error.message?.includes('not found')) {
+      console.log(`🗑️ LiveKit room already gone: ${roomName}`);
+      return;
+    }
+    console.error(`❌ Failed to destroy LiveKit room ${roomName}:`, error);
+  }
 };

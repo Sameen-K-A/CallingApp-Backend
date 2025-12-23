@@ -11,7 +11,8 @@ import {
   setOffline,
   updateTelecallerPresenceInDB,
   getTelecallerDetailsForBroadcast,
-  broadcastPresenceToUsers
+  broadcastPresenceToUsers,
+  getSocketId
 } from '../services/presence.service';
 import {
   acceptCall,
@@ -21,6 +22,7 @@ import {
 } from '../services/call.service';
 import { getIOInstance } from '../index';
 import { callActionLimiter } from '../../middleware/rateLimiter';
+import CallModel from '../../models/call.model';
 
 // ============================================
 // Setup Telecaller Namespace
@@ -80,6 +82,20 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
 
       if (!result.success || !result.call) {
         socket.emit('error', { message: result.error || 'Failed to accept call.' });
+
+        // Notify user that acceptance failed
+        if (result.userSocketId) {
+          const io = getIOInstance();
+          const userNamespace = io.of('/user');
+          const userSocketId = await getSocketId('USER', result.userSocketId);
+
+          if (userSocketId) {
+            userNamespace.to(userSocketId).emit('call:error', {
+              message: 'Call setup failed. Please try again.'
+            });
+          }
+        };
+
         return;
       }
 
