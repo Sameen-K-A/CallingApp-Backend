@@ -2,7 +2,10 @@ import mongoose from 'mongoose'
 
 const connectDB = async (): Promise<void> => {
   try {
-    const mongoUri = process.env.MONGO_URI
+    const mongoUri = process.env.NODE_ENV === 'production'
+      ? process.env.MONGO_PRODUCTION_URI
+      : process.env.MONGO_DEVELOPMENT_URI;
+
     if (!mongoUri) {
       console.error('❌ FATAL ERROR: MONGO_URI is not defined in the .env file.')
       process.exit(1)
