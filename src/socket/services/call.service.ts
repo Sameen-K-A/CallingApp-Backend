@@ -2,11 +2,17 @@ import { Types } from 'mongoose';
 import UserModel from '../../models/user.model';
 import CallModel from '../../models/call.model';
 import { getSocketId } from './presence.service';
-import { ITelecaller } from '../../types/telecaller';
 import { getIOInstance } from '..';
 import { destroyLiveKitRoom } from '../../services/livekit.service';
 import { generateLiveKitToken, LiveKitCredentials } from '../../services/livekit.service';
-import redis, { REDIS_KEYS } from '../../config/redis.config';
+import { IUserDocument } from '../../types/general.d';
+import { isTelecaller } from '../../utils/guards';
+
+// Call timer duration in milliseconds
+const CALL_TIMER_DURATION_MS = 30 * 1000;
+
+// Store active timers (for cleanup if needed)
+const activeTimers = new Map<string, NodeJS.Timeout>();
 
 export interface UserCallDetails {
   _id: string;
@@ -72,34 +78,11 @@ const createErrorResult = <T extends { success: boolean; error?: string }>(error
 // Timer Management
 // ============================================
 
-export const startCallTimer = async (callId: string, userId: string, telecallerId: string): Promise<void> => {
-  const key = REDIS_KEYS.CALL_TIMER(callId);
-  const data = JSON.stringify({ userId, telecallerId });
-
-  // Set timer for 30 seconds
-  await redis.set(key, data, 'EX', 30);
-
-  setTimeout(async () => {
-    // Check if key still exists (meaning call wasn't answered)
-    const exists = await redis.exists(key);
-    if (exists) {
-      console.log(`⏰ Call timer expired: ${callId}`);
-      await handleMissedCall(callId, userId, telecallerId);
-      await redis.del(key);
-    }
-  }, 30000);
-
-  console.log(`⏰ Started 30s timer for call: ${callId}`);
-};
-
-export const clearCallTimer = async (callId: string): Promise<void> => {
-  const key = REDIS_KEYS.CALL_TIMER(callId);
-  await redis.del(key);
-  console.log(`⏰ Cleared timer for call: ${callId}`);
-};
-
 const handleMissedCall = async (callId: string, userId: string, telecallerId: string): Promise<void> => {
   try {
+    // Remove from active timers
+    activeTimers.delete(callId);
+
     const call = await CallModel
       .findOneAndUpdate({ _id: callId, status: 'RINGING' }, { $set: { status: 'MISSED' } }, { new: true })
       .lean();
@@ -133,23 +116,36 @@ const handleMissedCall = async (callId: string, userId: string, telecallerId: st
   }
 };
 
+export const startCallTimer = (callId: string, userId: string, telecallerId: string): void => {
+  const timer = setTimeout(() => {
+    handleMissedCall(callId, userId, telecallerId);
+  }, CALL_TIMER_DURATION_MS);
+
+  activeTimers.set(callId, timer);
+  console.log(`⏰ Started ${CALL_TIMER_DURATION_MS / 1000}s timer for call: ${callId}`);
+};
+
+export const clearCallTimer = (callId: string): void => {
+  const timer = activeTimers.get(callId);
+  if (timer) {
+    clearTimeout(timer);
+    activeTimers.delete(callId);
+    console.log(`⏰ Cleared timer for call: ${callId}`);
+  }
+};
+
 // ============================================
 // Cleanup Stale Ringing Calls (Server Startup)
 // ============================================
 
 export const cleanupStaleRingingCalls = async (): Promise<void> => {
   try {
-    const staleTime = new Date(Date.now() - 30000);
+    const staleTime = new Date(Date.now() - CALL_TIMER_DURATION_MS);
 
     const result = await CallModel.updateMany(
       { status: 'RINGING', createdAt: { $lt: staleTime } },
       { $set: { status: 'MISSED' } }
     );
-
-    const keys = await redis.keys('call:timer:*');
-    if (keys.length > 0) {
-      await redis.del(keys);
-    }
 
     console.log(`🧹 Cleaned up ${result.modifiedCount} stale RINGING call(s)`);
   } catch (error) {
@@ -216,7 +212,7 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
       return createErrorResult('Something went wrong. Please try again.');
     }
 
-    const [user, telecaller] = await Promise.all([
+    const [user, telecallerDoc] = await Promise.all([
       UserModel
         .findOne(
           { _id: userId, role: 'USER', accountStatus: 'ACTIVE' },
@@ -229,15 +225,22 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
           { _id: telecallerId, role: 'TELECALLER', accountStatus: 'ACTIVE', 'telecallerProfile.approvalStatus': 'APPROVED' },
           { _id: 1, name: 1, profile: 1, telecallerProfile: 1 }
         )
-        .lean() as Promise<(ITelecaller & { _id: Types.ObjectId }) | null>
+        .lean()
     ]);
 
     if (!user) {
       return createErrorResult('Your account is not available. Please contact support.');
     };
-    if (!telecaller) {
+
+    if (!telecallerDoc) {
       return createErrorResult('This person is no longer available for calls.');
     };
+
+    // Cast through unknown for lean() result
+    const telecaller = telecallerDoc as unknown as IUserDocument;
+    if (!isTelecaller(telecaller)) {
+      return createErrorResult('This person is no longer available for calls.');
+    }
 
     const telecallerName = telecaller.name || 'This person';
     const telecallerPresence = telecaller.telecallerProfile.presence;
@@ -282,7 +285,7 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
     const roomName = callId;
 
     console.log(`📞 Call initiated: ${callId} | Room: ${roomName} | ${userId} → ${telecallerId} | ${callType}`);
-    await startCallTimer(callId, userId, telecallerId);
+    startCallTimer(callId, userId, telecallerId);
 
     return {
       success: true,
@@ -326,7 +329,7 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
       return createErrorResult('Call is no longer available.');
     }
 
-    await clearCallTimer(callId);
+    clearCallTimer(callId);
 
     const roomName = call._id.toString();
 
@@ -419,7 +422,7 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
       return createErrorResult('Call not found or already ended.');
     }
 
-    await clearCallTimer(callId);
+    clearCallTimer(callId);
 
     const userSocketId = await getSocketId('USER', call.userId.toString());
     const roomName = call._id.toString();
@@ -461,7 +464,7 @@ export const cancelCall = async (userId: string, callId: string): Promise<CallAc
       return createErrorResult('Call not found or already ended.');
     };
 
-    await clearCallTimer(callId);
+    clearCallTimer(callId);
 
     const telecallerSocketId = await getSocketId('TELECALLER', call.telecallerId.toString());
     const roomName = call._id.toString();
@@ -592,7 +595,7 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
     // Handle RINGING call
     if (ringingCall) {
       const callId = ringingCall._id.toString();
-      await clearCallTimer(callId);
+      clearCallTimer(callId);
 
       await CallModel.updateOne({ _id: callId }, { $set: { status: 'MISSED' } });
 
@@ -649,7 +652,7 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
     // Handle RINGING call
     if (ringingCall) {
       const callId = ringingCall._id.toString();
-      await clearCallTimer(callId);
+      clearCallTimer(callId);
 
       await CallModel.updateOne({ _id: callId }, { $set: { status: 'MISSED' } });
 

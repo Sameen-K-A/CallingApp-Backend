@@ -16,12 +16,12 @@ import {
   UpdatePlanInput
 } from './admin.types'
 import AdminModel from '../../models/admin.model'
-import UserModel, { IUserDocument } from '../../models/user.model'
+import UserModel from '../../models/user.model'
 import TransactionModel from '../../models/transaction.model'
 import ReportModel from '../../models/report.model'
 import { IAdmin } from '../../types/admin'
 import mongoose from 'mongoose'
-import { IReport } from '../../types/general'
+import { IReport, IUserDocument } from '../../types/general'
 import CallModel from '../../models/call.model'
 import PlanModel from '../../models/plan.model'
 
@@ -46,7 +46,7 @@ export class AdminRepository implements IAdminRepository {
       { $limit: limit },
       {
         $project: {
-          _id: 1,
+          _id: { $toString: '$_id' },
           phone: 1,
           name: { $ifNull: ['$name', null] },
           gender: { $ifNull: ['$gender', null] },
@@ -123,12 +123,23 @@ export class AdminRepository implements IAdminRepository {
   public async getAllPlans(page: number, limit: number): Promise<PaginatedResult<PlanListResponse>> {
     const skip = (page - 1) * limit
 
-    const items = await PlanModel.find({ isDeleted: false })
-      .select('_id amount coins discountPercentage isActive createdAt updatedAt')
-      .sort({ amount: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean()
+    const items = await PlanModel.aggregate<PlanListResponse>([
+      { $match: { isDeleted: false } },
+      { $sort: { amount: 1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: { $toString: '$_id' },
+          amount: 1,
+          coins: 1,
+          discountPercentage: 1,
+          isActive: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      }
+    ])
 
     const total = await PlanModel.countDocuments({ isDeleted: false })
 
@@ -137,23 +148,43 @@ export class AdminRepository implements IAdminRepository {
 
   // Fetches a single plan by ID
   public async getPlanById(planId: string): Promise<PlanDetailsResponse | null> {
-    const plan = await PlanModel
-      .findOne({ _id: planId, isDeleted: false })
-      .select('_id amount coins discountPercentage isActive createdAt updatedAt')
-      .lean()
+    const results = await PlanModel.aggregate<PlanDetailsResponse>([
+      { $match: { _id: new mongoose.Types.ObjectId(planId), isDeleted: false } },
+      { $limit: 1 },
+      {
+        $project: {
+          _id: { $toString: '$_id' },
+          amount: 1,
+          coins: 1,
+          discountPercentage: 1,
+          isActive: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      }
+    ])
 
-    return plan
+    return results[0] || null
   };
 
   // Fetches a paginated list of telecallers by their approval status.
   public async getTelecallers(status: 'PENDING' | 'APPROVED' | 'REJECTED', page: number, limit: number): Promise<PaginatedResult<TelecallerListResponse>> {
     const skip = (page - 1) * limit
-    const items = await UserModel.find({ role: 'TELECALLER', 'telecallerProfile.approvalStatus': status })
-      .select('_id phone name accountStatus createdAt')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean()
+    const items = await UserModel.aggregate<TelecallerListResponse>([
+      { $match: { role: 'TELECALLER', 'telecallerProfile.approvalStatus': status } },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: { $toString: '$_id' },
+          phone: 1,
+          name: { $ifNull: ['$name', null] },
+          accountStatus: 1,
+          createdAt: 1
+        }
+      }
+    ])
     const total = await UserModel.countDocuments({ role: 'TELECALLER', 'telecallerProfile.approvalStatus': status })
     return { items, total }
   }
@@ -304,10 +335,10 @@ export class AdminRepository implements IAdminRepository {
       { $unwind: { path: '$reported', preserveNullAndEmptyArrays: true } },
       {
         $project: {
-          _id: 1,
-          reportedBy: 1,
+          _id: { $toString: '$_id' },
+          reportedBy: { $toString: '$reportedBy' },
           reportedByName: { $ifNull: ['$reporter.name', 'Deleted User'] },
-          reportedAgainst: 1,
+          reportedAgainst: { $toString: '$reportedAgainst' },
           reportedAgainstName: { $ifNull: ['$reported.name', 'Deleted User'] },
           description: 1,
           status: 1,
@@ -393,14 +424,12 @@ export class AdminRepository implements IAdminRepository {
           call: {
             _id: { $toString: '$call._id' },
             status: '$call.status',
-            initiatedAt: '$call.initiatedAt',
+            createdAt: '$call.createdAt',
             acceptedAt: '$call.acceptedAt',
             endedAt: '$call.endedAt',
             durationInSeconds: '$call.durationInSeconds',
             coinsSpent: '$call.coinsSpent',
             coinsEarned: '$call.coinsEarned',
-            endedBy: '$call.endedBy',
-            endReason: '$call.endReason',
             userFeedback: '$call.userFeedback',
             telecallerFeedback: '$call.telecallerFeedback'
           }
@@ -427,10 +456,16 @@ export class AdminRepository implements IAdminRepository {
   };
 
   // Blocks a user by setting their account status to SUSPENDED
-  public async blockUser(userId: string): Promise<boolean> {
+  public async blockUser(userId: string, isTelecaller: boolean = false): Promise<boolean> {
+    const updateData: any = { accountStatus: 'SUSPENDED' };
+
+    if (isTelecaller) {
+      updateData['telecallerProfile.presence'] = 'OFFLINE';
+    }
+
     const result = await UserModel.findByIdAndUpdate(
       userId,
-      { $set: { accountStatus: 'SUSPENDED' } },
+      { $set: updateData },
       { new: true }
     );
     return !!result
@@ -600,24 +635,35 @@ export class AdminRepository implements IAdminRepository {
     })
 
     return {
-      _id: plan._id,
+      _id: plan._id.toString(),
       amount: plan.amount,
       coins: plan.coins,
       discountPercentage: plan.discountPercentage,
       isActive: plan.isActive,
       createdAt: plan.createdAt,
       updatedAt: plan.updatedAt
-    } as PlanDetailsResponse
+    }
   };
 
   // Updates an existing plan
   public async updatePlan(planId: string, data: UpdatePlanInput): Promise<PlanDetailsResponse | null> {
-    const plan = await PlanModel
-      .findOneAndUpdate({ _id: planId, isDeleted: false }, { $set: data }, { new: true })
-      .select('_id amount coins discountPercentage isActive createdAt updatedAt')
-      .lean()
+    const plan = await PlanModel.findOneAndUpdate(
+      { _id: planId, isDeleted: false },
+      { $set: data },
+      { new: true }
+    )
 
-    return plan
+    if (!plan) return null
+
+    return {
+      _id: plan._id.toString(),
+      amount: plan.amount,
+      coins: plan.coins,
+      discountPercentage: plan.discountPercentage,
+      isActive: plan.isActive,
+      createdAt: plan.createdAt,
+      updatedAt: plan.updatedAt
+    }
   };
 
   // Soft deletes a plan

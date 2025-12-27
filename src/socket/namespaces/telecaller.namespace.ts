@@ -1,5 +1,5 @@
 import { Server as SocketIOServer, Namespace } from 'socket.io';
-import { requireRole, socketAuthMiddleware } from '../middleware/auth.middleware';
+import { requireRole, socketAuthMiddleware, requireActiveAccount, requireApprovedTelecaller } from '../middleware/auth.middleware';
 import { CallIdPayload } from '../types/user.events';
 import {
   ServerToTelecallerEvents,
@@ -22,7 +22,6 @@ import {
 } from '../services/call.service';
 import { getIOInstance } from '../index';
 import { callActionLimiter } from '../../middleware/rateLimiter';
-import CallModel from '../../models/call.model';
 
 // ============================================
 // Setup Telecaller Namespace
@@ -34,6 +33,8 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
 
   telecallerNamespace.use(socketAuthMiddleware);
   telecallerNamespace.use(requireRole(['TELECALLER']));
+  telecallerNamespace.use(requireActiveAccount);
+  telecallerNamespace.use(requireApprovedTelecaller);
 
   telecallerNamespace.on('connection', async (socket) => {
     const userId = socket.data.userId;

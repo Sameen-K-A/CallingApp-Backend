@@ -1,47 +1,45 @@
-import { IUserDocument } from '../../models/user.model';
+import { IUserDocument } from '../../types/general';
 import { IOTP } from '../../types/general';
-import { ITelecaller } from '../../types/telecaller';
-import { IUser } from '../../types/user';
 
 // ============================================
 // DTOs (Data Transfer Objects) for API Responses
 // ============================================
 
-export type UserAuthResponse =
-  | Pick<IUser,
-    | '_id'
-    | 'phone'
-    | 'name'
-    | 'dob'
-    | 'language'
-    | 'gender'
-    | "profile"
-    | 'accountStatus'
-    | 'createdAt'
-  >
-  | Pick<ITelecaller,
-    | '_id'
-    | 'phone'
-    | 'name'
-    | 'dob'
-    | 'gender'
-    | "profile"
-    | 'language'
-    | 'accountStatus'
-    | 'role'
-    | 'createdAt'
-  > & {
-    telecallerProfile?: {
-      verificationNotes: string;
-      approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
-      about: string
-    }
+export interface UserAuthResponseBase {
+  _id: string;
+  phone: string;
+  name?: string;
+  dob?: Date;
+  language?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  profile?: string;
+  accountStatus: 'ACTIVE' | 'SUSPENDED';
+  role: 'USER' | 'TELECALLER';
+  wallet: {
+    balance: number;
   };
+  createdAt: Date;
+};
+
+export interface UserAuthResponseUser extends UserAuthResponseBase {
+  role: 'USER';
+};
+
+export interface UserAuthResponseTelecaller extends UserAuthResponseBase {
+  role: 'TELECALLER';
+  telecallerProfile: {
+    about?: string;
+    approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    verificationNotes?: string;
+  };
+};
+
+export type UserAuthResponse = UserAuthResponseUser | UserAuthResponseTelecaller;
 
 export interface VerifyOtpResponse {
   token: string;
   user: UserAuthResponse;
-}
+};
 
 // ============================================
 // Service & Repository Interfaces

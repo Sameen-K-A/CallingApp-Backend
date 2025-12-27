@@ -5,14 +5,14 @@ import { ApiError } from '../middleware/errors/ApiError'
 export interface TokenPayload {
   userId: string
   phone: string
-  role?: 'TELECALLER' | 'ADMIN'
+  role: 'USER' | 'TELECALLER' | 'ADMIN'
 };
 
 declare global {
   namespace Express {
     interface Request {
       userId?: string;
-      userRole?: 'TELECALLER' | 'ADMIN';
+      userRole?: 'USER' | 'TELECALLER' | 'ADMIN';
     }
   }
 };
@@ -23,11 +23,8 @@ const getSecret = (): string => {
   return secret
 };
 
-export const createToken = (userId: string, phone: string, role?: 'TELECALLER' | 'ADMIN'): string => {
-  const payload: TokenPayload = { userId, phone }
-  if (role === 'TELECALLER' || role === 'ADMIN') {
-    payload.role = role
-  }
+export const createToken = (userId: string, phone: string, role: 'USER' | 'TELECALLER' | 'ADMIN' = 'USER'): string => {
+  const payload: TokenPayload = { userId, phone, role }
   return jwt.sign(payload, getSecret(), { expiresIn: '7d' })
 };
 

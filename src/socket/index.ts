@@ -40,3 +40,11 @@ export const getIOInstance = (): SocketIOServer => {
   }
   return ioInstance;
 };
+
+// Cleanup function for graceful shutdown
+export const cleanupSocketIO = (): void => {
+  if (ioInstance) {
+    ioInstance.close();
+    ioInstance = null;
+  }
+};

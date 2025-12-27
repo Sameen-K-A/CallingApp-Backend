@@ -1,6 +1,9 @@
 import { Socket } from 'socket.io';
 import { decodeToken, TokenPayload } from '../../utils/jwt';
 import { ExtendedError } from 'socket.io/dist/namespace';
+import { connectionLimiter } from '../../middleware/rateLimiter';
+import UserModel from '../../models/user.model';
+import { isTelecaller } from '../../utils/guards';
 
 const getAuthTokenFromCookies = (cookieHeader?: string): string | undefined => {
   if (!cookieHeader) return;
@@ -12,8 +15,16 @@ const getAuthTokenFromCookies = (cookieHeader?: string): string | undefined => {
     ?.split("=")[1];
 };
 
-export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError) => void) => {
+export const socketAuthMiddleware = async (socket: Socket, next: (err?: ExtendedError) => void) => {
   try {
+    // Connection rate limiting by IP
+    const clientIp = socket.handshake.address || 'unknown';
+    try {
+      await connectionLimiter.consume(clientIp);
+    } catch (rateLimitError) {
+      return next(new Error('Too many connection attempts. Please wait.'));
+    }
+
     const cookieToken = getAuthTokenFromCookies(socket.handshake.headers.cookie);
 
     const token =
@@ -49,4 +60,58 @@ export const requireRole = (allowedRoles: Array<'ADMIN' | 'USER' | 'TELECALLER'>
 
     next();
   };
+};
+
+// ==================================== Account status check middleware =====================================
+export const requireActiveAccount = async (socket: Socket, next: (err?: ExtendedError) => void) => {
+  try {
+    const userId = socket.data.userId;
+    const role = socket.data.role;
+
+    // Skip for ADMIN - they don't have accountStatus
+    if (role === 'ADMIN') {
+      return next();
+    }
+
+    const user = await UserModel.findById(userId).select('accountStatus').lean();
+
+    if (!user) {
+      return next(new Error('Account not found'));
+    }
+
+    if (user.accountStatus === 'SUSPENDED') {
+      return next(new Error('Account suspended. Please contact support.'));
+    }
+
+    next();
+  } catch (error) {
+    next(new Error('Failed to verify account status'));
+  }
+};
+
+// ==================================== Telecaller approval check middleware =====================================
+export const requireApprovedTelecaller = async (socket: Socket, next: (err?: ExtendedError) => void) => {
+  try {
+    const userId = socket.data.userId;
+
+    const user = await UserModel.findById(userId).select('role telecallerProfile.approvalStatus').lean();
+
+    if (!user) {
+      return next(new Error('Account not found'));
+    }
+
+    if (!isTelecaller(user as any)) {
+      return next(new Error('Invalid account type'));
+    }
+
+    const approvalStatus = (user as any).telecallerProfile?.approvalStatus;
+
+    if (approvalStatus !== 'APPROVED') {
+      return next(new Error('Account not approved. Please wait for admin approval.'));
+    }
+
+    next();
+  } catch (error) {
+    next(new Error('Failed to verify approval status'));
+  }
 };

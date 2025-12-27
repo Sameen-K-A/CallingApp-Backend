@@ -11,16 +11,14 @@ import {
   PaginatedTelecallersResponse
 } from './user.types'
 import { ApiError } from '../../middleware/errors/ApiError'
-import { IUserDocument } from '../../models/user.model'
-import { ITelecaller } from '../../types/telecaller'
+import { isTelecaller } from '../../utils/guards'
+import { IUserDocument } from '../../types/general';
 
-function isTelecaller(user: IUserDocument): user is ITelecaller {
-  return user.role === 'TELECALLER' && !!user.telecallerProfile
-}
+const MAX_FAVORITES_LIMIT = 50;
 
 function buildUserProfileResponse(user: IUserDocument): UserProfileResponse {
   const response: UserProfileResponse = {
-    _id: user._id,
+    _id: user._id.toString(),
     phone: user.phone,
     name: user.name!,
     role: user.role!,
@@ -35,7 +33,7 @@ function buildUserProfileResponse(user: IUserDocument): UserProfileResponse {
 
   if (isTelecaller(user)) {
     response.telecallerProfile = {
-      verificationNotes: user.telecallerProfile.verificationNotes || "",
+      verificationNotes: user.telecallerProfile.verificationNotes || '',
       approvalStatus: user.telecallerProfile.approvalStatus,
       about: user.telecallerProfile.about
     }
@@ -53,6 +51,12 @@ export class UserService implements IUserService {
     }
     if (user.accountStatus === 'SUSPENDED') {
       throw new ApiError(403, 'Your account has been suspended. Please contact support.')
+    }
+  };
+
+  private checkIsRegularUser(user: IUserDocument): void {
+    if (user.role === 'TELECALLER') {
+      throw new ApiError(403, 'This feature is only available for users.')
     }
   };
 
@@ -77,7 +81,7 @@ export class UserService implements IUserService {
       updatePayload.telecallerProfile = {
         about: about || '',
         approvalStatus: 'PENDING',
-        presence: 'ONLINE'
+        presence: 'OFFLINE'
       }
     }
 
@@ -91,7 +95,7 @@ export class UserService implements IUserService {
     const user = await this.userRepository.findUserById(userId)
     this.checkUserAndAccountStatus(user)
 
-    if (!user!.name) throw new ApiError(400, 'Please complete your profile first.')
+    if (!user.name) throw new ApiError(400, 'Please complete your profile first.')
 
     const updatePayload: UserUpdatePayload = {}
 
@@ -125,6 +129,7 @@ export class UserService implements IUserService {
   public async getFavorites(userId: string, page: number, limit: number): Promise<PaginatedFavoritesResponse> {
     const user = await this.userRepository.findUserById(userId)
     this.checkUserAndAccountStatus(user)
+    this.checkIsRegularUser(user)
 
     const { favorites, total } = await this.userRepository.findFavoritesByUserId(userId, page, limit)
     return { favorites, hasMore: page * limit < total }
@@ -133,6 +138,12 @@ export class UserService implements IUserService {
   public async addToFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse> {
     const user = await this.userRepository.findUserById(userId)
     this.checkUserAndAccountStatus(user)
+    this.checkIsRegularUser(user)
+
+    // Prevent user from adding themselves (edge case if userId somehow matches a telecaller)
+    if (userId === telecallerId) {
+      throw new ApiError(400, 'You cannot add yourself to favorites.')
+    }
 
     const telecaller = await this.userRepository.findTelecallerById(telecallerId)
     if (!telecaller) {
@@ -143,13 +154,26 @@ export class UserService implements IUserService {
       throw new ApiError(400, 'This telecaller is no longer available.')
     }
 
-    if (!telecaller.telecallerProfile || telecaller.telecallerProfile.approvalStatus !== 'APPROVED') {
+    // Use type guard for proper type narrowing
+    if (!isTelecaller(telecaller) || telecaller.telecallerProfile.approvalStatus !== 'APPROVED') {
       throw new ApiError(400, 'This telecaller is not available.')
     }
 
-    const added = await this.userRepository.addToFavorites(userId, telecallerId)
-    if (!added) {
-      throw new ApiError(400, 'You have reached the maximum limit of 50 favorites.')
+    // Check if already in favorites first
+    const isAlreadyFavorite = await this.userRepository.isInFavorites(userId, telecallerId)
+    if (isAlreadyFavorite) {
+      return { success: true, message: 'Telecaller is already in your favorites.' }
+    }
+
+    // Check favorites count before adding
+    const currentCount = await this.userRepository.getFavoritesCount(userId)
+    if (currentCount >= MAX_FAVORITES_LIMIT) {
+      throw new ApiError(400, `You have reached the maximum limit of ${MAX_FAVORITES_LIMIT} favorites.`)
+    }
+
+    const result = await this.userRepository.addToFavorites(userId, telecallerId)
+    if (!result.success) {
+      throw new ApiError(500, 'Failed to add to favorites. Please try again.')
     }
 
     return { success: true, message: 'Added to favorites successfully.' }
@@ -158,6 +182,7 @@ export class UserService implements IUserService {
   public async removeFromFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse> {
     const user = await this.userRepository.findUserById(userId)
     this.checkUserAndAccountStatus(user)
+    this.checkIsRegularUser(user)
 
     await this.userRepository.removeFromFavorites(userId, telecallerId)
 

@@ -1,5 +1,5 @@
 import { Server as SocketIOServer, Namespace } from 'socket.io';
-import { requireRole, socketAuthMiddleware } from '../middleware/auth.middleware';
+import { requireRole, socketAuthMiddleware, requireActiveAccount } from '../middleware/auth.middleware';
 import {
   ServerToUserEvents,
   UserToServerEvents,
@@ -27,6 +27,7 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
 
   userNamespace.use(socketAuthMiddleware);
   userNamespace.use(requireRole(['USER']));
+  userNamespace.use(requireActiveAccount);
 
   userNamespace.on('connection', async (socket) => {
     const userId = socket.data.userId;

@@ -1,39 +1,52 @@
-import { IUserDocument } from '../../models/user.model'
-import { IUserBase } from '../../types/general'
+import { IUserDocument } from '../../types/general'
+import { ILanguage } from '../../constants/languages'
 
 // DTO for the complete-profile request body
-export type CompleteProfileDto = Pick<IUserBase, | 'name' | 'dob' | 'gender' | 'role' | 'language'> & {
+export type CompleteProfileDto = {
+  name: string
+  dob: Date
+  gender: 'MALE' | 'FEMALE' | 'OTHER'
+  role: 'USER' | 'TELECALLER'
+  language: ILanguage
   about?: string
 }
 
 // DTO for the edit-profile request body (all fields optional, but at least one required)
-export type EditProfileDto = Partial<Pick<IUserBase, | 'name' | 'language' | 'profile'>>
+export type EditProfileDto = {
+  name?: string
+  language?: ILanguage
+  profile?: string | null
+}
 
 // Response user object sent to the frontend
-export type UserProfileResponse =
-  & Pick<IUserBase,
-    | '_id'
-    | 'phone'
-    | 'name'
-    | 'role'
-    | 'dob'
-    | 'gender'
-    | 'language'
-    | 'profile'
-    | 'accountStatus'
-    | 'wallet'
-    | 'createdAt'
-  >
-  & {
-    telecallerProfile?: {
-      verificationNotes: string;
-      approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
-      about: string
-    }
+export type UserProfileResponse = {
+  _id: string
+  phone: string
+  name: string
+  role: 'USER' | 'TELECALLER'
+  dob: Date
+  gender: 'MALE' | 'FEMALE' | 'OTHER'
+  language: ILanguage
+  profile?: string
+  accountStatus: 'ACTIVE' | 'SUSPENDED'
+  wallet: { balance: number }
+  createdAt: Date
+  telecallerProfile?: {
+    verificationNotes: string
+    approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
+    about?: string
   }
+}
 
 // Update user details
-export type UserUpdatePayload = Partial<IUserBase> & {
+export type UserUpdatePayload = {
+  name?: string
+  dob?: Date
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
+  language?: ILanguage
+  profile?: string | null
+  role?: 'USER' | 'TELECALLER'
+  wallet?: { balance: number }
   telecallerProfile?: {
     about: string
     approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -57,7 +70,7 @@ export type PlanResponse = {
 export type FavoriteTelecallerResponse = {
   _id: string
   name: string
-  profile: string | null
+  profile: string | undefined
   language: string
   about: string
   presence: 'ONLINE' | 'OFFLINE' | 'ON_CALL'
@@ -95,9 +108,11 @@ export interface IUserRepository {
   findActivePlans(): Promise<PlanResponse[]>
   findFavoritesByUserId(userId: string, page: number, limit: number): Promise<{ favorites: FavoriteTelecallerResponse[], total: number }>
   findTelecallerById(telecallerId: string): Promise<IUserDocument | null>
-  addToFavorites(userId: string, telecallerId: string): Promise<boolean>
+  addToFavorites(userId: string, telecallerId: string): Promise<{ success: boolean; alreadyExists: boolean }>
   removeFromFavorites(userId: string, telecallerId: string): Promise<boolean>
   findApprovedTelecallers(userId: string, page: number, limit: number): Promise<{ telecallers: TelecallerResponse[], total: number }>
+  isInFavorites(userId: string, telecallerId: string): Promise<boolean>
+  getFavoritesCount(userId: string): Promise<number>
 }
 
 export interface IUserService {

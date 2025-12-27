@@ -1,10 +1,12 @@
 import redis, { REDIS_KEYS } from "../../config/redis.config";
 import UserModel from "../../models/user.model";
-import { ITelecaller } from "../../types/telecaller";
+import { IUserDocument } from "../../types/general";
+import { isTelecaller } from '../../utils/guards';
 import { getIOInstance } from '../index';
 import { TelecallerBroadcastData, TelecallerPresenceChangePayload } from '../types/user.events';
 
 type PresenceRoleType = 'USER' | 'TELECALLER';
+type TelecallerPresence = 'ONLINE' | 'OFFLINE' | 'ON_CALL';
 
 // ============================================
 // Redis Operations
@@ -70,7 +72,7 @@ export const getOnlineCount = async (type: PresenceRoleType): Promise<number> =>
 // Database Operations
 // ============================================
 
-export const updateTelecallerPresenceInDB = async (userId: string, presence: ITelecaller["telecallerProfile"]["presence"]): Promise<boolean> => {
+export const updateTelecallerPresenceInDB = async (userId: string, presence: TelecallerPresence): Promise<boolean> => {
   try {
     const result = await UserModel.updateOne(
       { _id: userId, role: 'TELECALLER' },
@@ -125,18 +127,21 @@ export const getTelecallerDetailsForBroadcast = async (userId: string): Promise<
       }, {
         _id: 1, name: 1, profile: 1, language: 1, 'telecallerProfile.about': 1
       })
-      .lean();
+      .lean() as IUserDocument | null;
 
     if (!telecaller) {
       return null;
     }
+
+    // Use type guard for safe access
+    const about = isTelecaller(telecaller) ? telecaller.telecallerProfile.about : '';
 
     return {
       _id: telecaller._id.toString(),
       name: telecaller.name || '',
       profile: telecaller.profile || null,
       language: telecaller.language || '',
-      about: (telecaller as any).telecallerProfile?.about || '',
+      about: about || '',
     };
   } catch (error) {
     console.error(`❌ Error fetching telecaller details for broadcast:`, error);

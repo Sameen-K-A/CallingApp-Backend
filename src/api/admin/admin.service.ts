@@ -19,13 +19,8 @@ import {
 import { createToken } from '../../utils/jwt'
 import { OAuth2Client } from 'google-auth-library'
 import { ApiError } from '../../middleware/errors/ApiError'
-import { IUserDocument } from '../../models/user.model';
-import { ITelecaller } from '../../types/telecaller';
+import { isTelecaller } from '../../utils/guards';
 import { IReport } from '../../types/general';
-
-function isTelecaller(user: IUserDocument): user is ITelecaller {
-  return user.role === 'TELECALLER' && !!user.telecallerProfile;
-};
 
 export class AdminService implements IAdminService {
   private googleClient: OAuth2Client
@@ -134,6 +129,9 @@ export class AdminService implements IAdminService {
     if (telecallerDoc.telecallerProfile.approvalStatus === 'APPROVED') {
       throw new ApiError(400, 'This telecaller is already approved.')
     }
+    if (telecallerDoc.telecallerProfile.approvalStatus === 'REJECTED') {
+      throw new ApiError(400, 'Cannot approve a rejected telecaller. They must re-apply first.')
+    }
 
     const updated = await this.adminRepository.updateTelecallerStatus(telecallerId, 'APPROVED')
     if (!updated || !isTelecaller(updated)) {
@@ -220,8 +218,8 @@ export class AdminService implements IAdminService {
       };
     };
 
-    if (user.role === 'TELECALLER') {
-      if (!user.telecallerProfile || user.telecallerProfile.approvalStatus !== 'APPROVED') {
+    if (isTelecaller(user)) {
+      if (user.telecallerProfile.approvalStatus !== 'APPROVED') {
         return {
           success: false,
           message: 'Only approved telecallers can be blocked. This telecaller is not yet approved.'
@@ -229,7 +227,7 @@ export class AdminService implements IAdminService {
       }
     };
 
-    const blockResult = await this.adminRepository.blockUser(userId);
+    const blockResult = await this.adminRepository.blockUser(userId, isTelecaller(user));
     if (!blockResult) {
       throw new ApiError(500, 'Failed to block user.');
     };
@@ -251,8 +249,8 @@ export class AdminService implements IAdminService {
       };
     };
 
-    if (user.role === 'TELECALLER') {
-      if (!user.telecallerProfile || user.telecallerProfile.approvalStatus !== 'APPROVED') {
+    if (isTelecaller(user)) {
+      if (user.telecallerProfile.approvalStatus !== 'APPROVED') {
         return {
           success: false,
           message: 'Only approved telecallers can be unblocked. This telecaller is not approved.'

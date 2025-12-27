@@ -1,5 +1,6 @@
 import { TelecallerResponse, IUserRepository, PlanResponse, UserUpdatePayload, FavoriteTelecallerResponse } from './user.types'
-import UserModel, { IUserDocument } from '../../models/user.model'
+import UserModel from '../../models/user.model'
+import { IUserDocument } from '../../types/general'
 import PlanModel from '../../models/plan.model'
 import { Types } from 'mongoose'
 
@@ -86,16 +87,41 @@ export class UserRepository implements IUserRepository {
     }
   };
 
-  public async addToFavorites(userId: string, telecallerId: string): Promise<boolean> {
-    const result = await UserModel.updateOne(
-      {
-        _id: new Types.ObjectId(userId),
-        $expr: { $lt: [{ $size: { $ifNull: ['$favorites', []] } }, 50] }
-      },
-      { $addToSet: { favorites: new Types.ObjectId(telecallerId) } }
-    );
+  public async isInFavorites(userId: string, telecallerId: string): Promise<boolean> {
+    const result = await UserModel.findOne({
+      _id: new Types.ObjectId(userId),
+      favorites: new Types.ObjectId(telecallerId)
+    })
 
-    return result.modifiedCount > 0 || result.matchedCount > 0;
+    return result !== null
+  };
+
+  public async getFavoritesCount(userId: string): Promise<number> {
+    const result = await UserModel.aggregate([
+      { $match: { _id: new Types.ObjectId(userId) } },
+      { $project: { count: { $size: { $ifNull: ['$favorites', []] } } } }
+    ])
+
+    return result[0]?.count || 0
+  };
+
+  public async addToFavorites(userId: string, telecallerId: string): Promise<{ success: boolean; alreadyExists: boolean }> {
+    const telecallerObjectId = new Types.ObjectId(telecallerId)
+
+    // Try to add using $addToSet (handles duplicates automatically)
+    const result = await UserModel.updateOne(
+      { _id: new Types.ObjectId(userId) },
+      { $addToSet: { favorites: telecallerObjectId } }
+    )
+
+    // If modifiedCount is 0, it means either:
+    // 1. The telecaller was already in favorites (duplicate)
+    // 2. The user doesn't exist (but we check this in service layer)
+    if (result.modifiedCount === 0 && result.matchedCount > 0) {
+      return { success: true, alreadyExists: true }
+    }
+
+    return { success: result.modifiedCount > 0, alreadyExists: false }
   };
 
   public async removeFromFavorites(userId: string, telecallerId: string): Promise<boolean> {
@@ -104,7 +130,7 @@ export class UserRepository implements IUserRepository {
       { $pull: { favorites: new Types.ObjectId(telecallerId) } }
     );
 
-    return result.modifiedCount > 0;
+    return result.modifiedCount > 0
   };
 
   public async findApprovedTelecallers(userId: string, page: number, limit: number): Promise<{ telecallers: TelecallerResponse[], total: number }> {

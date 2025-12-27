@@ -1,9 +1,6 @@
 import { Schema, model, Model } from 'mongoose'
-import { IUser } from '../types/user';
-import { ITelecaller } from '../types/telecaller';
+import { IUserDocument } from '../types/general';
 import { LANGUAGES } from '../constants/languages';
-
-export type IUserDocument = IUser | ITelecaller
 
 const userSchema = new Schema<IUserDocument>({
   phone: {
@@ -12,22 +9,26 @@ const userSchema = new Schema<IUserDocument>({
     unique: true
   },
   name: {
-    type: String
+    type: String,
+    default: undefined
   },
   dob: {
-    type: Date
+    type: Date,
+    default: undefined
   },
   gender: {
     type: String,
-    enum: ['MALE', 'FEMALE', 'OTHER']
+    enum: ['MALE', 'FEMALE', 'OTHER'],
+    default: undefined
   },
   profile: {
     type: String,
-    default: null
+    default: undefined
   },
   language: {
     type: String,
-    enum: LANGUAGES
+    enum: LANGUAGES,
+    default: undefined
   },
   role: {
     type: String,

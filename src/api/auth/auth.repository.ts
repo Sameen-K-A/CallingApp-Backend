@@ -1,28 +1,34 @@
 import bcrypt from 'bcrypt';
 import { IAuthRepository } from './auth.types';
 import OtpModel from '../../models/otp.model';
-import UserModel, { IUserDocument } from '../../models/user.model';
-import { IOTP } from '../../types/general';
+import UserModel from '../../models/user.model';
+import { IUserDocument, IOTP } from '../../types/general';
 
 export class AuthRepository implements IAuthRepository {
   // Finds a user by their phone number.
   public async findUserByPhone(phone: string): Promise<IUserDocument | null> {
-    return UserModel.findOne({ phone });
+    return UserModel.findOne({ phone }).lean<IUserDocument>();
   };
 
   // Finds a user by phone, or creates a new one if they don't exist.
   public async findOrCreateUser(phone: string): Promise<IUserDocument> {
-    return UserModel.findOneAndUpdate(
+    const user = await UserModel.findOneAndUpdate(
       { phone },
       { $setOnInsert: { phone } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
-    ) as Promise<IUserDocument>;
+    ).lean<IUserDocument>();
+
+    if (!user) {
+      throw new Error('Failed to find or create user');
+    }
+
+    return user;
   };
 
   // Creates a new OTP or updates an existing one for a given phone number.
   public async upsertOtp(phone: string, otp: string): Promise<IOTP> {
     const hashedOtp = await bcrypt.hash(otp, 10);
-    return OtpModel.findOneAndUpdate(
+    const otpDoc = await OtpModel.findOneAndUpdate(
       { phone },
       {
         otp: hashedOtp,
@@ -31,7 +37,13 @@ export class AuthRepository implements IAuthRepository {
         expiresAt: new Date(Date.now() + 5 * 60 * 1000)
       },
       { upsert: true, new: true }
-    ) as Promise<IOTP>;
+    );
+
+    if (!otpDoc) {
+      throw new Error('Failed to create or update OTP');
+    }
+
+    return otpDoc;
   };
 
   // Finds an OTP document by phone number only

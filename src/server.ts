@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import app from './app'
 import connectDB from './config/DB.config'
 import { testRedisConnection, closeRedisConnection } from './config/redis.config';
-import { initializeSocketIO, setIOInstance } from './socket';
+import { initializeSocketIO, setIOInstance, cleanupSocketIO } from './socket';
 import { resetAllTelecallerPresence } from './socket/services/presence.service';
 import { cleanupStaleRingingCalls } from './socket/services/call.service';
 
@@ -44,9 +44,8 @@ const startServer = async (): Promise<void> => {
         console.log('🔌 HTTP server closed.');
       });
 
-      io.close(() => {
-        console.log('🔌 Socket.IO closed.');
-      });
+      cleanupSocketIO();
+      console.log('🔌 Socket.IO closed.');
 
       try {
         await closeRedisConnection();

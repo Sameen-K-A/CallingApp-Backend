@@ -1,9 +1,11 @@
 import { ILanguage } from "../../constants/languages";
-import { IUserDocument } from "../../models/user.model";
-import { IUserBase } from "../../types/general";
+import { IUserDocument } from "../../types/general";
 
 // DTO for the edit-profile request body
-export type EditProfileDto = Partial<Pick<IUserBase, 'name' | 'language' | 'profile'>> & {
+export type EditProfileDto = {
+  name?: string;
+  language?: ILanguage;
+  profile?: string | null;
   about?: string;
 };
 
@@ -16,30 +18,30 @@ export interface ReapplyDto {
 }
 
 // Response telecaller object sent to the frontend
-export type TelecallerProfileResponse =
-  & Pick<IUserBase,
-    | '_id'
-    | 'phone'
-    | 'name'
-    | 'role'
-    | 'dob'
-    | 'gender'
-    | 'language'
-    | 'profile'
-    | 'accountStatus'
-    | 'wallet'
-    | 'createdAt'
-  >
-  & {
-    telecallerProfile?: {
-      verificationNotes: string;
-      approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-      about: string;
-    };
+export type TelecallerProfileResponse = {
+  _id: string;
+  phone: string;
+  name: string;
+  role: 'USER' | 'TELECALLER';
+  dob: Date;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  language: ILanguage;
+  profile?: string;
+  accountStatus: 'ACTIVE' | 'SUSPENDED';
+  wallet: { balance: number };
+  createdAt: Date;
+  telecallerProfile?: {
+    verificationNotes: string;
+    approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    about: string;
   };
+};
 
 // Update payload using MongoDB dot notation for nested fields
-export type TelecallerUpdatePayload = Partial<Pick<IUserBase, 'name' | 'language' | 'profile'>> & {
+export type TelecallerUpdatePayload = {
+  name?: string;
+  language?: ILanguage;
+  profile?: string | null;
   'telecallerProfile.about'?: string;
   'telecallerProfile.approvalStatus'?: 'PENDING' | 'APPROVED' | 'REJECTED';
   'telecallerProfile.presence'?: 'ONLINE' | 'OFFLINE' | 'ON_CALL';

@@ -1,5 +1,7 @@
 import { Document, Types } from 'mongoose'
 import { ILanguage } from '../constants/languages';
+import { IUser } from './user';
+import { ITelecaller } from './telecaller';
 
 export interface IOTP extends Document {
   _id: Types.ObjectId;
@@ -25,6 +27,8 @@ export interface IUserBase extends Document {
   createdAt: Date
   updatedAt: Date
 };
+
+export type IUserDocument = IUser | ITelecaller;
 
 export interface ITransaction extends Document {
   _id: Types.ObjectId
@@ -69,7 +73,6 @@ export interface IPlan extends Document {
   createdAt: Date
   updatedAt: Date
 }
-
 
 export type CallType = 'AUDIO' | 'VIDEO';
 

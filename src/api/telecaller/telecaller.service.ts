@@ -1,6 +1,6 @@
 import { ApiError } from '../../middleware/errors/ApiError';
-import { IUserDocument } from '../../models/user.model';
-import { ITelecaller } from '../../types/telecaller';
+import { IUserDocument } from '../../types/general';
+import { isTelecaller } from '../../utils/guards';
 import {
   EditProfileDto,
   ITelecallerRepository,
@@ -11,13 +11,9 @@ import {
   TelecallerUpdatePayload,
 } from './telecaller.types';
 
-function isTelecaller(user: IUserDocument): user is ITelecaller {
-  return user.role === 'TELECALLER' && !!user.telecallerProfile;
-};
-
 function buildUserProfileResponse(user: IUserDocument): TelecallerProfileResponse {
   const response: TelecallerProfileResponse = {
-    _id: user._id,
+    _id: user._id.toString(),
     phone: user.phone,
     name: user.name!,
     role: user.role!,
@@ -59,6 +55,14 @@ export class TelecallerService implements ITelecallerService {
 
     if (!user.name) {
       throw new ApiError(400, 'Please complete your profile first.');
+    }
+
+    if (!isTelecaller(user)) {
+      throw new ApiError(400, 'Only telecallers can access this feature.');
+    }
+
+    if (user.telecallerProfile.approvalStatus !== 'APPROVED') {
+      throw new ApiError(403, 'You can only edit your profile after your application is approved.');
     }
 
     const updatePayload: TelecallerUpdatePayload = {};

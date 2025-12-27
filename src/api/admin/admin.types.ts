@@ -1,67 +1,62 @@
 import { IAdmin } from '../../types/admin'
-import { ICall, IPlan, ITransaction } from '../../types/general'
-import { IReport } from '../../types/general'
-import { IUserDocument } from '../../models/user.model'
-import { IUser } from '../../types/user'
-import { ITelecaller } from '../../types/telecaller'
+import { IUserDocument, IReport } from '../../types/general'
 
 // ============================================
 // DTOs (Data Transfer Objects) for API Responses
 // ============================================
 
 // User data for lists.
-export type UserListResponse = Pick<IUser,
-  | '_id'
-  | 'phone'
-  | 'name'
-  | 'accountStatus'
-  | 'createdAt'
-> & {
+export type UserListResponse = {
+  _id: string
+  phone: string
+  name: string | null
   gender: 'MALE' | 'FEMALE' | 'OTHER' | null
+  accountStatus: 'ACTIVE' | 'SUSPENDED'
+  createdAt: Date
 }
 
 // Telecaller data for lists.
-export type TelecallerListResponse = Pick<ITelecaller,
-  | '_id'
-  | 'phone'
-  | 'name'
-  | 'accountStatus'
-  | 'createdAt'
->
+export type TelecallerListResponse = {
+  _id: string
+  phone: string
+  name: string | null
+  accountStatus: 'ACTIVE' | 'SUSPENDED'
+  createdAt: Date
+}
 
 // Transaction data for lists.
-export type TransactionListResponse = Pick<ITransaction,
-  | '_id'
-  | 'type'
-  | 'amount'
-  | 'status'
-  | 'createdAt'
-> & {
+export type TransactionListResponse = {
+  _id: string
+  type: 'RECHARGE' | 'WITHDRAWAL'
+  amount: number
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  createdAt: Date
   user: {
     name: string | null
   }
 }
 
 // Transaction details response DTO
-export type TransactionDetailsResponse = Pick<ITransaction,
-  | "_id"
-  | "type"
-  | "amount"
-  | "status"
-  | "createdAt"
-  | "coins"
-  | "gatewayOrderId"
-  | "gatewayPaymentId"
-  | "payoutId"
-  | "utr"
-> & {
-  user: Pick<IUser,
-    | "_id"
-    | "name"
-    | "phone"
-  > & {
+export type TransactionDetailsResponse = {
+  _id: string
+  type: 'RECHARGE' | 'WITHDRAWAL'
+  amount: number
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  createdAt: Date
+  updatedAt: Date
+  user: {
+    _id: string
+    name: string
+    phone: string
     walletBalance: number
   }
+  // For RECHARGE
+  coins?: number
+  gatewayOrderId?: string
+  gatewayPaymentId?: string
+  // For WITHDRAWAL
+  payoutId?: string
+  utr?: string
 }
 
 // ============================================
@@ -69,26 +64,26 @@ export type TransactionDetailsResponse = Pick<ITransaction,
 // ============================================
 
 // Plan data for lists
-export type PlanListResponse = Pick<IPlan,
-  | '_id'
-  | 'amount'
-  | 'coins'
-  | 'discountPercentage'
-  | 'isActive'
-  | 'createdAt'
-  | 'updatedAt'
->
+export type PlanListResponse = {
+  _id: string
+  amount: number
+  coins: number
+  discountPercentage: number
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
 
 // Plan details for single view
-export type PlanDetailsResponse = Pick<IPlan,
-  | '_id'
-  | 'amount'
-  | 'coins'
-  | 'discountPercentage'
-  | 'isActive'
-  | 'createdAt'
-  | 'updatedAt'
->
+export type PlanDetailsResponse = {
+  _id: string
+  amount: number
+  coins: number
+  discountPercentage: number
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
 
 // Input for creating a plan
 export interface CreatePlanInput {
@@ -106,106 +101,105 @@ export interface UpdatePlanInput {
 }
 
 // Report details for individual view
-export type ReportDetailsResponse = Pick<IReport,
-  | "_id"
-  | "description"
-  | "status"
-  | "adminNotes"
-  | "resolvedAt"
-  | "createdAt"
-  | "updatedAt"
-> & {
-  reporter: Pick<IUser,
-    | "_id"
-    | "name"
-    | "phone"
-    | "role"
-    | "accountStatus"
-  >
-  reportedAgainst: Pick<IUser,
-    | "_id"
-    | "name"
-    | "phone"
-    | "role"
-    | "accountStatus"
-  >
-  call: Pick<ICall,
-    | "_id"
-    | "status"
-    | "createdAt"
-    | "acceptedAt"
-    | "endedAt"
-    | "durationInSeconds"
-    | "coinsSpent"
-    | "coinsEarned"
-    | "userFeedback"
-    | "telecallerFeedback"
-  >
+export type ReportDetailsResponse = {
+  _id: string
+  description: string
+  status: 'PENDING' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED'
+  adminNotes?: string
+  resolvedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+  reporter: {
+    _id: string
+    name: string
+    phone: string
+    role: 'USER' | 'TELECALLER'
+    accountStatus: 'ACTIVE' | 'SUSPENDED'
+  }
+  reportedAgainst: {
+    _id: string
+    name: string
+    phone: string
+    role: 'USER' | 'TELECALLER'
+    accountStatus: 'ACTIVE' | 'SUSPENDED'
+  }
+  call: {
+    _id: string
+    status: 'RINGING' | 'ACCEPTED' | 'REJECTED' | 'MISSED' | 'COMPLETED'
+    createdAt: Date
+    acceptedAt?: Date
+    endedAt?: Date
+    durationInSeconds: number
+    coinsSpent: number
+    coinsEarned: number
+    userFeedback?: string
+    telecallerFeedback?: string
+  }
 };
 
 // Updated ReportListResponse with new field names
-export type ReportListResponse = Pick<IReport,
-  | '_id'
-  | 'reportedBy'
-  | 'reportedAgainst'
-  | 'description'
-  | 'status'
-  | 'createdAt'
-> & {
+export type ReportListResponse = {
+  _id: string
+  reportedBy: string
+  reportedAgainst: string
   reportedByName: string
   reportedAgainstName: string
+  description: string
+  status: 'PENDING' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED'
+  createdAt: Date
 };
 
-export type TelecallerComplaintItem = Pick<IReport,
-  | "_id"
-  | "reportedBy"
-  | "description"
-  | "status"
-  | "createdAt"
-> & {
+export type TelecallerComplaintItem = {
+  _id: string
+  reportedBy: string
   reportedByName: string
+  description: string
+  status: 'PENDING' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED'
+  createdAt: Date
 };
 
 // Detailed telecaller profile.
-export type TelecallerDetailsResponse = Pick<ITelecaller,
-  | '_id'
-  | 'name'
-  | 'phone'
-  | 'dob'
-  | 'gender'
-  | 'accountStatus'
-  | 'createdAt'
-  | 'telecallerProfile'
-> & {
+export type TelecallerDetailsResponse = {
+  _id: string
+  name: string | null
+  phone: string
+  dob: Date | null
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null
+  accountStatus: 'ACTIVE' | 'SUSPENDED'
+  createdAt: Date
   walletBalance: number
+  telecallerProfile: {
+    about?: string
+    approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
+    verificationNotes?: string
+    presence: 'ONLINE' | 'OFFLINE' | 'ON_CALL'
+  }
   complaints: TelecallerComplaintItem[]
   totalComplaints: number
 }
 
 // User complaint item for individual complaint display
-export type UserComplaintItem = Pick<IReport,
-  | "_id"
-  | "reportedBy"
-  | "description"
-  | "status"
-  | "createdAt"
-> & {
-  reportedByName: string;
+export type UserComplaintItem = {
+  _id: string
+  reportedBy: string
+  reportedByName: string
+  description: string
+  status: 'PENDING' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED'
+  createdAt: Date
 };
 
 // Detailed user profile response
-export type UserDetailsResponse = Pick<IUser,
-  | '_id'
-  | 'name'
-  | 'phone'
-  | 'dob'
-  | 'gender'
-  | 'accountStatus'
-  | 'createdAt'
-> & {
-  walletBalance: number;
-  complaints: UserComplaintItem[];
-  totalComplaints: number;
+export type UserDetailsResponse = {
+  _id: string
+  name: string | null
+  phone: string
+  dob: Date | null
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null
+  accountStatus: 'ACTIVE' | 'SUSPENDED'
+  createdAt: Date
+  walletBalance: number
+  complaints: UserComplaintItem[]
+  totalComplaints: number
 }
 
 // Dashboard Stats Response
@@ -265,7 +259,7 @@ export interface IAdminRepository {
   getAllReports(page: number, limit: number): Promise<PaginatedResult<ReportListResponse>>
   getReportDetails(reportId: string): Promise<ReportDetailsResponse | null>
   updateReportStatus(reportId: string, status: string, adminNotes?: string): Promise<IReport | null>
-  blockUser(userId: string): Promise<boolean>
+  blockUser(userId: string, isTelecaller?: boolean): Promise<boolean>
   unblockUser(userId: string): Promise<boolean>
   getUser(userId: string): Promise<IUserDocument | null>
   findTelecallerById(telecallerId: string): Promise<IUserDocument | null>

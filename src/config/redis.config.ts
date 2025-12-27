@@ -54,9 +54,6 @@ export const REDIS_KEYS = {
   USER_SOCKET: (userId: string) => `presence:user:${userId}`,
   TELECALLER_SOCKET: (userId: string) => `presence:telecaller:${userId}`,
 
-  // Call timer keys
-  CALL_TIMER: (callId: string) => `call:timer:${callId}`,
-
   // Reverse lookup (socket -> user)
   SOCKET_USER: (socketId: string) => `socket:user:${socketId}`,
   SOCKET_TELECALLER: (socketId: string) => `socket:telecaller:${socketId}`,

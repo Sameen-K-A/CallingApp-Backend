@@ -9,6 +9,8 @@ import { adminRouter } from './api/admin/admin.routes'
 import { authRouter } from './api/auth/auth.routes'
 import { userRouter } from './api/users/user.routes'
 import { telecallerRouter } from './api/telecaller/telecaller.routes'
+import { testRedisConnection } from './config/redis.config'
+import mongoose from 'mongoose'
 
 const app: Application = express();
 
@@ -27,7 +29,18 @@ app.use('/auth', authRouter)
 app.use('/admin', adminRouter);
 app.use('/users', userRouter)
 app.use('/telecaller', telecallerRouter);
-app.get('/health', (req, res) => res.status(200).json({ status: 'UP' }))
+
+app.get('/health', async (req, res) => {
+  const redisOk = await testRedisConnection();
+  const mongoOk = mongoose.connection.readyState === 1;
+
+  res.status(200).json({
+    status: 'UP',
+    redis: redisOk ? 'connected' : 'disconnected',
+    mongo: mongoOk ? 'connected' : 'disconnected',
+    timestamp: new Date()
+  });
+});
 
 app.use(errorHandler)
 

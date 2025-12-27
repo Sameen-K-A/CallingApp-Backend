@@ -1,4 +1,5 @@
-import UserModel, { IUserDocument } from '../../models/user.model';
+import UserModel from '../../models/user.model';
+import { IUserDocument } from '../../types/general';
 import { ITelecallerRepository, ReapplyUpdatePayload, TelecallerUpdatePayload } from './telecaller.types';
 
 export class TelecallerRepository implements ITelecallerRepository {
