@@ -3,6 +3,18 @@
 ```text
 backend/
 ├── dist/                                   # Compiled JavaScript output
+├── docs/
+│   ├── socket/
+│   │   ├── admin.md                        # Admin socket events documentation
+│   │   ├── telecaller.md                   # Telecaller socket events documentation
+│   │   └── user.md                         # User socket events documentation
+│   ├── admin.md                            # Admin REST API endpoints documentation
+│   ├── auth.md                             # Authentication REST API endpoints documentation
+│   ├── callFlow.md                         # End-to-end call workflow and state management
+│   ├── README.md                           # Documentation index and overview
+│   ├── telecaller.md                       # Telecaller REST API endpoints documentation
+│   └── users.md                            # User REST API endpoints documentation
+│
 ├── node_modules/                           # Dependencies
 ├── src/
 │   ├── api/                                # API modules (feature-based architecture)
