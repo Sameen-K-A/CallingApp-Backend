@@ -339,36 +339,36 @@ export class AdminService implements IAdminService {
         coinToInrRatio: {
           value: config.coinToInrRatio,
           label: 'Coin to INR Ratio',
-          description: 'The conversion rate used when telecallers withdraw their earnings. For example, if set to 1, then 100 coins will be converted to ₹100. If set to 0.5, then 100 coins will be converted to ₹50.',
+          description: 'This setting controls how coins are converted to real money (INR) when a telecaller requests a withdrawal. If you set this to 1, it means 1 coin equals ₹1. So if a telecaller has earned 500 coins, they will receive ₹500. If you set this to 0.5, then 1 coin equals ₹0.50, meaning 500 coins would be worth ₹250. Adjust this based on your platform\'s pricing strategy.',
         },
         minWithdrawalCoins: {
           value: config.minWithdrawalCoins,
           label: 'Minimum Withdrawal Coins',
-          description: 'The minimum number of coins a telecaller must have to request a withdrawal. Telecallers with fewer coins than this threshold will not be able to submit a withdrawal request.',
+          description: 'This is the minimum number of coins a telecaller must have in their wallet to request a withdrawal. For example, if you set this to 100, telecallers cannot request a withdrawal until they have earned at least 100 coins. This helps reduce the number of small withdrawal requests and processing overhead. Set a higher value to encourage telecallers to accumulate more earnings before withdrawing.',
         },
       },
       videoCall: {
         userCoinPerSec: {
           value: config.userVideoCallCoinPerSec,
-          label: 'User Coins Per Second',
-          description: 'The number of coins deducted from the user\'s wallet for every second of an active video call. This is the rate charged to users for video calling telecallers.',
+          label: 'User Coins Per Second (Video)',
+          description: 'This is how many coins are deducted from the user\'s wallet every second during a video call. For example, if set to 3, a 10-minute (600 seconds) video call will cost the user 1,800 coins. Higher values mean users pay more per call, so set this based on what you want to charge users for video calling telecallers.',
         },
         telecallerCoinPerSec: {
           value: config.telecallerVideoCallCoinPerSec,
-          label: 'Telecaller Coins Per Second',
-          description: 'The number of coins credited to the telecaller\'s wallet for every second of an active video call. This is the earning rate for telecallers when they receive video calls.',
+          label: 'Telecaller Coins Per Second (Video)',
+          description: 'This is how many coins the telecaller earns every second during a video call. For example, if set to 1, a 10-minute (600 seconds) video call will earn the telecaller 600 coins. The difference between what the user pays and what the telecaller earns is your platform\'s profit. Make sure this value is less than or equal to the user\'s rate.',
         },
       },
       audioCall: {
         userCoinPerSec: {
           value: config.userAudioCallCoinPerSec,
-          label: 'User Coins Per Second',
-          description: 'The number of coins deducted from the user\'s wallet for every second of an active audio call. This is the rate charged to users for audio calling telecallers.',
+          label: 'User Coins Per Second (Audio)',
+          description: 'This is how many coins are deducted from the user\'s wallet every second during an audio call. Audio calls are typically cheaper than video calls. For example, if set to 2, a 10-minute (600 seconds) audio call will cost the user 1,200 coins. Adjust this to be lower than the video call rate to offer users a more affordable option.',
         },
         telecallerCoinPerSec: {
           value: config.telecallerAudioCallCoinPerSec,
-          label: 'Telecaller Coins Per Second',
-          description: 'The number of coins credited to the telecaller\'s wallet for every second of an active audio call. This is the earning rate for telecallers when they receive audio calls.',
+          label: 'Telecaller Coins Per Second (Audio)',
+          description: 'This is how many coins the telecaller earns every second during an audio call. For example, if set to 1, a 10-minute (600 seconds) audio call will earn the telecaller 600 coins. Similar to video calls, the difference between the user rate and telecaller rate is your platform\'s earnings from each audio call.',
         },
       },
       updatedAt: config.updatedAt,
