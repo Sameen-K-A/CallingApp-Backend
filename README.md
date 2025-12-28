@@ -36,6 +36,12 @@ backend/
 │   │   │   ├── telecaller.router.ts        # Telecaller route definitions
 │   │   │   ├── telecaller.service.ts       # Telecaller business logic
 │   │   │   └── telecaller.types.ts         # Telecaller-specific types
+│   │   ├── payment/
+│   │   │   ├── payment.controller.ts       # Payment request handlers
+│   │   │   ├── payment.repository.ts       # Payment database operations
+│   │   │   ├── payment.routes.ts           # Payment route definitions
+│   │   │   ├── payment.service.ts          # Payment business logic
+│   │   │   └── payment.types.ts            # Payment-specific types
 │   │   └── users/
 │   │       ├── user.controller.ts          # User request handlers
 │   │       ├── user.repository.ts          # User database operations
@@ -55,6 +61,7 @@ backend/
 │   │   │   ├── admin.validation.ts         # Admin request validation schemas
 │   │   │   ├── auth.validation.ts          # Auth request validation schemas
 │   │   │   ├── telecaller.validation.ts    # Telecaller request validation schemas
+│   │   │   ├── payment.validation.ts       # Payment request validation schemas
 │   │   │   └── user.validation.ts          # User request validation schemas
 │   │   ├── error.handler.ts                # Global error handling middleware
 │   │   └── rateLimiter.ts                  # Rate limiting for socket/calls and auth routes

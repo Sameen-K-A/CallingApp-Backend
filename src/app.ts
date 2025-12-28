@@ -9,6 +9,7 @@ import { adminRouter } from './api/admin/admin.routes'
 import { authRouter } from './api/auth/auth.routes'
 import { userRouter } from './api/users/user.routes'
 import { telecallerRouter } from './api/telecaller/telecaller.routes'
+import { paymentRouter } from './api/payment/payment.routes'
 import { testRedisConnection } from './config/redis.config'
 import mongoose from 'mongoose'
 
@@ -29,6 +30,7 @@ app.use('/auth', authRouter)
 app.use('/admin', adminRouter);
 app.use('/users', userRouter)
 app.use('/telecaller', telecallerRouter);
+app.use('/payment', paymentRouter);
 
 app.get('/health', async (req, res) => {
   const redisOk = await testRedisConnection();

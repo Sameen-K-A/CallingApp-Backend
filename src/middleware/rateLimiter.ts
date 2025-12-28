@@ -89,3 +89,56 @@ export const rateLimitOtpVerify = async (req: Request, res: Response, next: Next
     next(new ApiError(429, 'Too many attempts. Please try again later.'));
   }
 };
+
+
+// ============================================
+// Payment Rate Limiters
+// ============================================
+
+// Create Razorpay Order Limiter
+// Limit: 2 requests per minute per user
+const createOrderLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'limit:create_order',
+  points: 2,
+  duration: 60,
+});
+
+// Verify Payment Limiter
+// Limit: 5 requests per minute per user
+const verifyPaymentLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'limit:verify_payment',
+  points: 5,
+  duration: 60,
+});
+
+export const rateLimitCreateOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return next(new ApiError(401, 'Authentication required.'));
+    }
+
+    await createOrderLimiter.consume(userId);
+    next();
+  } catch (error) {
+    next(new ApiError(429, 'Too many requests. Please try again later.'));
+  }
+};
+
+export const rateLimitVerifyPayment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return next(new ApiError(401, 'Authentication required.'));
+    }
+
+    await verifyPaymentLimiter.consume(userId);
+    next();
+  } catch (error) {
+    next(new ApiError(429, 'Too many verification attempts. Please try again later.'));
+  }
+};
