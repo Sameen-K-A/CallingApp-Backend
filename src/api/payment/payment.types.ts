@@ -1,5 +1,5 @@
 import { Types, ClientSession } from 'mongoose';
-import { ITransaction } from '../../types/general';
+import { IBankDetails, ITransaction } from '../../types/general';
 
 // ============================================
 // DTOs (Data Transfer Objects)
@@ -30,6 +30,49 @@ export interface VerifyPaymentSuccessResponse {
   coins: number;
   newBalance: number;
   amount: number;
+}
+
+// ============================================
+// Withdrawal Types
+// ============================================
+
+export interface WithdrawDto {
+  coins: number;
+}
+
+export interface WithdrawResponse {
+  transactionId: string;
+  coins: number;
+  amount: number;
+  status: 'PENDING';
+  currentBalance: number;
+  bankDetails: {
+    accountNumber: string;
+    ifscCode: string;
+    accountHolderName: string;
+  };
+}
+
+export interface TelecallerForWithdrawal {
+  _id: Types.ObjectId;
+  role: 'USER' | 'TELECALLER';
+  accountStatus: 'ACTIVE' | 'SUSPENDED';
+  wallet: {
+    balance: number;
+  };
+  telecallerProfile?: {
+    approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    bankDetails?: IBankDetails;
+  };
+}
+
+export interface CreateWithdrawalTransactionData {
+  userId: Types.ObjectId;
+  type: 'WITHDRAWAL';
+  coins: number;
+  amount: number;
+  status: 'PENDING';
+  bankDetails: IBankDetails;
 }
 
 // ============================================
@@ -88,6 +131,11 @@ export interface IPaymentRepository {
   findTransactionByOrderId(orderId: string): Promise<TransactionForVerification | null>;
   updateTransaction(transactionId: string, data: UpdateTransactionData, session?: ClientSession): Promise<ITransaction | null>;
   updateUserWalletBalance(userId: string, coinsToAdd: number, session?: ClientSession): Promise<number | null>;
+
+  // withdrawal methods
+  findTelecallerForWithdrawal(userId: string): Promise<TelecallerForWithdrawal | null>;
+  hasPendingWithdrawal(userId: string): Promise<boolean>;
+  createWithdrawalTransaction(data: CreateWithdrawalTransactionData): Promise<ITransaction>;
 }
 
 // ============================================
@@ -97,4 +145,5 @@ export interface IPaymentRepository {
 export interface IPaymentService {
   createOrder(userId: string, dto: CreateOrderDto): Promise<CreateOrderResponse>;
   verifyPayment(userId: string, dto: VerifyPaymentDto): Promise<VerifyPaymentSuccessResponse | null>;
+  withdraw(userId: string, dto: WithdrawDto): Promise<WithdrawResponse>;
 }

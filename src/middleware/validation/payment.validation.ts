@@ -53,3 +53,17 @@ export const verifyPaymentSchema = Joi.object({
       'boolean.base': 'Cancelled must be a boolean value.',
     }),
 });
+
+export const withdrawSchema = Joi.object({
+  coins: Joi
+    .number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Coins must be a number.',
+      'number.integer': 'Coins must be a whole number.',
+      'number.positive': 'Coins must be greater than 0.',
+      'any.required': 'Coins is required.',
+    }),
+});

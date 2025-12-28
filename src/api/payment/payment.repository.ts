@@ -10,6 +10,8 @@ import {
   UserForPayment,
   PlanForPayment,
   TransactionForVerification,
+  TelecallerForWithdrawal,
+  CreateWithdrawalTransactionData,
 } from './payment.types';
 
 export class PaymentRepository implements IPaymentRepository {
@@ -51,6 +53,30 @@ export class PaymentRepository implements IPaymentRepository {
       .lean<{ wallet: { balance: number } }>();
 
     return user ? user.wallet.balance : null;
+  }
+
+  // ============================================
+  // Withdrawal Methods
+  // ============================================
+
+  public async findTelecallerForWithdrawal(userId: string): Promise<TelecallerForWithdrawal | null> {
+    return UserModel
+      .findById(userId)
+      .select('_id role accountStatus wallet.balance telecallerProfile.approvalStatus telecallerProfile.bankDetails')
+      .lean<TelecallerForWithdrawal>();
+  }
+
+  public async hasPendingWithdrawal(userId: string): Promise<boolean> {
+    const pendingWithdrawal = await TransactionModel
+      .findOne({ userId: userId, type: 'WITHDRAWAL', status: 'PENDING' })
+      .lean();
+
+    return pendingWithdrawal !== null;
+  }
+
+  public async createWithdrawalTransaction(data: CreateWithdrawalTransactionData): Promise<ITransaction> {
+    const transaction = new TransactionModel(data);
+    return transaction.save();
   }
 
 }

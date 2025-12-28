@@ -142,3 +142,27 @@ export const rateLimitVerifyPayment = async (req: Request, res: Response, next: 
     next(new ApiError(429, 'Too many verification attempts. Please try again later.'));
   }
 };
+
+// Withdraw Limiter
+// Limit: 3 requests per hour per user (since it's a sensitive operation)
+const withdrawLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'limit:withdraw',
+  points: 3,
+  duration: 60 * 60, // 1 hour
+});
+
+export const rateLimitWithdraw = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return next(new ApiError(401, 'Authentication required.'));
+    }
+
+    await withdrawLimiter.consume(userId);
+    next();
+  } catch (error) {
+    next(new ApiError(429, 'Too many withdrawal requests. Please try again later.'));
+  }
+};

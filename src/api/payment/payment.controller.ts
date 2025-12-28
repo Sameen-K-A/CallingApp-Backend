@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { BaseController } from '../../utils/baseController';
-import { IPaymentService, CreateOrderDto, VerifyPaymentDto } from './payment.types';
+import { IPaymentService, CreateOrderDto, VerifyPaymentDto, WithdrawDto } from './payment.types';
 
 export class PaymentController extends BaseController {
   constructor(private paymentService: IPaymentService) {
@@ -43,6 +43,23 @@ export class PaymentController extends BaseController {
       res.status(200).json({
         success: true,
         message: `Recharge successful! ${result.coins} coins added to your wallet.`,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public withdraw = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = this.getUserId(req);
+      const dto: WithdrawDto = req.body;
+
+      const result = await this.paymentService.withdraw(userId, dto);
+
+      res.status(200).json({
+        success: true,
+        message: 'Withdrawal request submitted successfully. Please wait for admin approval.',
         data: result,
       });
     } catch (error) {

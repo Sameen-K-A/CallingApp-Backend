@@ -8,14 +8,19 @@ Payment endpoints for coin recharge and wallet management.
 | --- | --- | --- | --- |
 | POST | /payment/create-order | Create Razorpay order for recharge | Yes (USER) |
 | POST | /payment/verify | Verify payment and credit coins | Yes (USER) |
+| POST | /payment/withdraw | Request coin withdrawal | Yes (TELECALLER) |
 
 ## 🔐 Authorization
 
 All endpoints require:
 
 - Valid JWT token
-- User role must be USER
 - Account status must be ACTIVE
+
+**Role Requirements:**
+
+- `/payment/create-order` and `/payment/verify`: User role must be USER
+- `/payment/withdraw`: User role must be TELECALLER
 
 ## 💰 1. Create Order
 
@@ -365,7 +370,191 @@ curl -X POST http://localhost:8000/payment/verify \
   }'
 ```
 
-## 🔄 Payment Flow
+## � 3. Withdraw Amount
+
+Request withdrawal of coins from wallet to bank account. Withdrawal requests are submitted for admin approval.
+
+### Withdraw Endpoint
+
+```text
+POST /payment/withdraw
+```
+
+### Withdraw Headers
+
+| Header | Value | Required |
+| --- | --- | --- |
+| Authorization | Bearer {token} | Yes |
+| Content-Type | application/json | Yes |
+
+### Withdraw Request Body
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| coins | number | Yes | Integer > 0, minimum based on config, ≤ wallet balance |
+
+### Withdraw Request Example
+
+```json
+{
+  "coins": 100
+}
+```
+
+### Withdraw Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "Withdrawal request submitted successfully. Please wait for admin approval.",
+  "data": {
+    "transactionId": "507f1f77bcf86cd799439014",
+    "coins": 100,
+    "amount": 50,
+    "status": "PENDING",
+    "currentBalance": 200,
+    "bankDetails": {
+      "accountNumber": "1234567890",
+      "ifscCode": "SBIN0001234",
+      "accountHolderName": "John Doe"
+    }
+  }
+}
+```
+
+### Withdraw Response Fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| transactionId | string | Withdrawal transaction ID |
+| coins | number | Coins requested for withdrawal |
+| amount | number | Amount in INR (coins × conversion rate) |
+| status | string | Always "PENDING" for new requests |
+| currentBalance | number | Remaining wallet balance after request |
+| bankDetails | object | Bank account details used for transfer |
+
+### Withdraw Error Responses
+
+#### Validation Error - Coins Required (400)
+
+```json
+{
+  "success": false,
+  "message": "Coins is required."
+}
+```
+
+#### Validation Error - Invalid Coins (400)
+
+```json
+{
+  "success": false,
+  "message": "Coins must be a whole number."
+}
+```
+
+#### Minimum Withdrawal Not Met (400)
+
+```json
+{
+  "success": false,
+  "message": "Minimum withdrawal is 50 coins."
+}
+```
+
+#### Insufficient Balance (400)
+
+```json
+{
+  "success": false,
+  "message": "Insufficient balance. You have 30 coins."
+}
+```
+
+#### Pending Withdrawal Exists (400)
+
+```json
+{
+  "success": false,
+  "message": "You already have a pending withdrawal request."
+}
+```
+
+#### Account Not Found (404)
+
+```json
+{
+  "success": false,
+  "message": "Account not found."
+}
+```
+
+#### Not a Telecaller (403)
+
+```json
+{
+  "success": false,
+  "message": "Only telecallers can withdraw."
+}
+```
+
+#### Withdraw, Account Suspended (403)
+
+```json
+{
+  "success": false,
+  "message": "Your account has been suspended. Please contact support."
+}
+```
+
+#### Application Not Approved (403)
+
+```json
+{
+  "success": false,
+  "message": "Your application must be approved to withdraw."
+}
+```
+
+#### Bank Details Missing (400)
+
+```json
+{
+  "success": false,
+  "message": "Please add bank details before withdrawing."
+}
+```
+
+#### Withdraw - Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "message": "Authentication token is required."
+}
+```
+
+#### Withdraw - Rate Limit Exceeded (429)
+
+```json
+{
+  "success": false,
+  "message": "Too many withdrawal requests. Please try again later."
+}
+```
+
+### Withdraw Example - cURL
+
+```bash
+curl -X POST http://localhost:8000/payment/withdraw \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "coins": 100
+  }'
+```
+
+## 🔄 Payment Flows
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -394,14 +583,53 @@ curl -X POST http://localhost:8000/payment/verify \
         └──► Transaction marked as CANCELLED
 ```
 
+### Withdrawal Flow
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            WITHDRAWAL FLOW                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. Telecaller checks wallet balance
+   └──► GET /users/profile (existing endpoint)
+
+2. Telecaller requests withdrawal
+   └──► POST /payment/withdraw { coins }
+       └──► Validates: balance, min amount, bank details, no pending request
+
+3. System creates PENDING withdrawal transaction
+   └──► Stores bank details, calculates INR amount
+   └──► Returns transaction details
+
+4. Admin reviews withdrawal request
+   └──► Admin panel shows pending withdrawals
+   └──► Admin approves/rejects
+
+5. On approval
+   ├──► Transfer amount to bank account manually
+   └──► Update transaction status to SUCCESS
+   └──► Deduct coins from wallet
+
+6. On rejection
+   └──► Update transaction status to FAILED
+   └──► No wallet deduction
+```
+
 ## 📊 Transaction Status Reference
 
 | Status | Description |
 | --- | --- |
-| PENDING | Order created, awaiting payment |
-| SUCCESS | Payment verified, coins credited |
-| FAILED | Payment verification failed (invalid signature) |
+| PENDING | Order created awaiting payment, or withdrawal request awaiting admin approval |
+| SUCCESS | Payment verified and coins credited, or withdrawal approved and processed |
+| FAILED | Payment verification failed, or withdrawal rejected |
 | CANCELLED | User cancelled payment |
+
+### Transaction Types
+
+| Type | Description |
+| --- | --- |
+| RECHARGE | Coin purchase via Razorpay |
+| WITHDRAWAL | Coin withdrawal to bank account |
 
 ## 📋 Plan Structure Reference
 
@@ -430,6 +658,7 @@ Plans are pre-configured by admin. Each plan contains:
 | --- | --- | --- |
 | /payment/create-order | 2 requests | 1 minute |
 | /payment/verify | 5 requests | 1 minute |
+| /payment/withdraw | 3 requests | 1 hour |
 
 ## 🔒 Security Notes
 
@@ -437,3 +666,5 @@ Plans are pre-configured by admin. Each plan contains:
 - **User Validation**: Only the user who created the order can verify it
 - **Status Check**: Already processed transactions cannot be verified again
 - **Rate Limiting**: Prevents brute force and abuse
+- **Withdrawal Validation**: Telecallers must have approved applications, bank details, sufficient balance, and no pending withdrawals
+- **Role-based Access**: Recharge endpoints require USER role, withdrawal requires TELECALLER role

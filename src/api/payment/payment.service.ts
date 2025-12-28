@@ -9,7 +9,11 @@ import {
   CreateOrderResponse,
   VerifyPaymentDto,
   VerifyPaymentSuccessResponse,
+  TelecallerForWithdrawal,
+  WithdrawDto,
+  WithdrawResponse,
 } from './payment.types';
+import { getConfigValues } from '../../services/config.service';
 
 export class PaymentService implements IPaymentService {
   constructor(private paymentRepository: IPaymentRepository) { }
@@ -161,6 +165,93 @@ export class PaymentService implements IPaymentService {
     } finally {
       session.endSession();
     }
+  }
+
+  // ============================================
+  // Withdrawal Method
+  // ============================================
+
+  private validateTelecallerForWithdrawal(telecaller: TelecallerForWithdrawal | null): asserts telecaller is TelecallerForWithdrawal {
+    if (!telecaller) {
+      throw new ApiError(404, 'Account not found.');
+    }
+
+    if (telecaller.role !== 'TELECALLER') {
+      throw new ApiError(403, 'Only telecallers can withdraw.');
+    }
+
+    if (telecaller.accountStatus === 'SUSPENDED') {
+      throw new ApiError(403, 'Your account has been suspended. Please contact support.');
+    }
+
+    if (telecaller.telecallerProfile?.approvalStatus !== 'APPROVED') {
+      throw new ApiError(403, 'Your application must be approved to withdraw.');
+    }
+
+    if (!telecaller.telecallerProfile?.bankDetails?.accountNumber) {
+      throw new ApiError(400, 'Please add bank details before withdrawing.');
+    }
+  }
+
+  public async withdraw(userId: string, dto: WithdrawDto): Promise<WithdrawResponse> {
+    // Fetch telecaller and config in parallel
+    const [telecaller, config] = await Promise.all([
+      this.paymentRepository.findTelecallerForWithdrawal(userId),
+      getConfigValues(['minWithdrawalCoins', 'coinToInrRatio']),
+    ]);
+
+    // Validate telecaller
+    this.validateTelecallerForWithdrawal(telecaller);
+
+    const { minWithdrawalCoins, coinToInrRatio } = config;
+    const walletBalance = telecaller.wallet.balance;
+    const bankDetails = telecaller.telecallerProfile!.bankDetails!;
+
+    // Validate coins
+    if (dto.coins < minWithdrawalCoins) {
+      throw new ApiError(400, `Minimum withdrawal is ${minWithdrawalCoins} coins.`);
+    }
+
+    if (dto.coins > walletBalance) {
+      throw new ApiError(400, `Insufficient balance. You have ${walletBalance} coins.`);
+    }
+
+    // Check no pending withdrawal
+    const hasPending = await this.paymentRepository.hasPendingWithdrawal(userId);
+    if (hasPending) {
+      throw new ApiError(400, 'You already have a pending withdrawal request.');
+    }
+
+    // Calculate amount
+    const amount = dto.coins * coinToInrRatio;
+
+    // Create withdrawal transaction
+    const transaction = await this.paymentRepository.createWithdrawalTransaction({
+      userId: new Types.ObjectId(userId),
+      type: 'WITHDRAWAL',
+      coins: dto.coins,
+      amount: amount,
+      status: 'PENDING',
+      bankDetails: {
+        accountNumber: bankDetails.accountNumber,
+        ifscCode: bankDetails.ifscCode,
+        accountHolderName: bankDetails.accountHolderName,
+      },
+    });
+
+    // Return response
+    return {
+      transactionId: transaction._id.toString(),
+      coins: dto.coins,
+      amount: amount,
+      status: 'PENDING',
+      currentBalance: walletBalance,
+      bankDetails: {
+        accountNumber: bankDetails.accountNumber,
+        ifscCode: bankDetails.ifscCode,
+        accountHolderName: bankDetails.accountHolderName,
+      },
+    };
   }
 
 }
