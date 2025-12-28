@@ -132,3 +132,42 @@ export const reapplySchema = Joi.object({
       'any.required': 'About section is required.',
     }),
 });
+
+// Bank Details Schema
+export const bankDetailsSchema = Joi.object({
+  accountNumber: Joi
+    .string()
+    .trim()
+    .pattern(/^[0-9]{9,18}$/)
+    .required()
+    .messages({
+      'string.empty': 'Account number is required.',
+      'string.pattern.base': 'Account number must be 9-18 digits.',
+      'any.required': 'Account number is required.',
+    }),
+  ifscCode: Joi
+    .string()
+    .trim()
+    .uppercase()
+    .pattern(/^[A-Z]{4}0[A-Z0-9]{6}$/)
+    .required()
+    .messages({
+      'string.empty': 'IFSC code is required.',
+      'string.pattern.base': 'Invalid IFSC code format.',
+      'any.required': 'IFSC code is required.',
+    }),
+  accountHolderName: Joi
+    .string()
+    .trim()
+    .min(3)
+    .max(100)
+    .pattern(/^[a-zA-Z\s]+$/)
+    .required()
+    .messages({
+      'string.empty': 'Account holder name is required.',
+      'string.min': 'Account holder name must be at least 3 characters.',
+      'string.max': 'Account holder name cannot exceed 100 characters.',
+      'string.pattern.base': 'Account holder name can only contain letters and spaces.',
+      'any.required': 'Account holder name is required.',
+    }),
+});

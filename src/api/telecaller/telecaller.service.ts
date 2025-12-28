@@ -1,5 +1,5 @@
 import { ApiError } from '../../middleware/errors/ApiError';
-import { IUserDocument } from '../../types/general';
+import { IBankDetails, IUserDocument } from '../../types/general';
 import { isTelecaller } from '../../utils/guards';
 import {
   EditProfileDto,
@@ -9,6 +9,9 @@ import {
   ReapplyUpdatePayload,
   TelecallerProfileResponse,
   TelecallerUpdatePayload,
+  BankDetailsDto,
+  BankDetailsResponse,
+  TelecallerForBankDetails,
 } from './telecaller.types';
 
 function buildUserProfileResponse(user: IUserDocument): TelecallerProfileResponse {
@@ -46,6 +49,21 @@ export class TelecallerService implements ITelecallerService {
     }
     if (user.accountStatus === 'SUSPENDED') {
       throw new ApiError(403, 'Your account has been suspended. Please contact support.');
+    }
+  };
+
+  private validateTelecaller(telecaller: TelecallerForBankDetails | null, requireApproved: boolean = true): asserts telecaller is TelecallerForBankDetails {
+    if (!telecaller) {
+      throw new ApiError(404, 'Account not found.');
+    }
+    if (telecaller.accountStatus === 'SUSPENDED') {
+      throw new ApiError(403, 'Your account has been suspended. Please contact support.');
+    }
+    if (telecaller.role !== 'TELECALLER') {
+      throw new ApiError(403, 'Only telecallers can access this feature.');
+    }
+    if (requireApproved && telecaller.telecallerProfile?.approvalStatus !== 'APPROVED') {
+      throw new ApiError(403, 'Your application must be approved to access this feature.');
     }
   };
 
@@ -119,6 +137,68 @@ export class TelecallerService implements ITelecallerService {
     }
 
     return buildUserProfileResponse(updatedUser);
+  };
+
+  public async getBankDetails(userId: string): Promise<BankDetailsResponse> {
+    const telecaller = await this.telecallerRepository.findTelecallerForBankDetails(userId);
+    this.validateTelecaller(telecaller);
+
+    const bankDetails = telecaller.telecallerProfile?.bankDetails;
+
+    if (!bankDetails || !bankDetails.accountNumber) {
+      return null;
+    }
+
+    return {
+      accountNumber: bankDetails.accountNumber,
+      ifscCode: bankDetails.ifscCode,
+      accountHolderName: bankDetails.accountHolderName,
+    };
+  };
+
+  public async addBankDetails(userId: string, bankDetailsDto: BankDetailsDto): Promise<BankDetailsResponse> {
+    const telecaller = await this.telecallerRepository.findTelecallerForBankDetails(userId);
+    this.validateTelecaller(telecaller);
+
+    const existingBankDetails = telecaller.telecallerProfile?.bankDetails;
+    if (existingBankDetails && existingBankDetails.accountNumber) {
+      throw new ApiError(400, 'Bank details already added.');
+    }
+
+    const bankDetails: IBankDetails = {
+      accountNumber: bankDetailsDto.accountNumber,
+      ifscCode: bankDetailsDto.ifscCode.toUpperCase(),
+      accountHolderName: bankDetailsDto.accountHolderName,
+    };
+
+    const success = await this.telecallerRepository.addBankDetails(userId, bankDetails);
+
+    if (!success) {
+      throw new ApiError(500, 'Failed to add bank details.');
+    }
+
+    return bankDetails;
+  };
+
+  public async deleteBankDetails(userId: string): Promise<void> {
+    const telecaller = await this.telecallerRepository.findTelecallerForBankDetails(userId);
+    this.validateTelecaller(telecaller);
+
+    const existingBankDetails = telecaller.telecallerProfile?.bankDetails;
+    if (!existingBankDetails || !existingBankDetails.accountNumber) {
+      throw new ApiError(404, 'No bank details found.');
+    }
+
+    const hasPending = await this.telecallerRepository.hasPendingWithdrawal(userId);
+    if (hasPending) {
+      throw new ApiError(400, 'Cannot delete bank details. You have a pending withdrawal request.');
+    }
+
+    const success = await this.telecallerRepository.removeBankDetails(userId);
+
+    if (!success) {
+      throw new ApiError(500, 'Failed to remove bank details.');
+    }
   };
 
 };

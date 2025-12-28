@@ -10,6 +10,9 @@ Telecaller endpoints for profile management and reapplication.
 | --- | --- | --- | --- |
 | PATCH | `/telecaller/edit-profile` | Edit telecaller profile | Yes (TELECALLER) |
 | PATCH | `/telecaller/reapply` | Reapply after rejection | Yes (TELECALLER) |
+| GET | `/telecaller/bank-details` | Get bank details | Yes (TELECALLER) |
+| POST | `/telecaller/bank-details` | Add bank details | Yes (TELECALLER) |
+| DELETE | `/telecaller/bank-details` | Delete bank details | Yes (TELECALLER) |
 
 ---
 
@@ -391,6 +394,247 @@ curl -X PATCH http://localhost:8000/telecaller/reapply \
     "language": "hindi",
     "about": "I am a professional telecaller with excellent communication skills. I have 5 years of experience in customer support and I am dedicated to providing quality service."
   }'
+```
+
+## 🏦 3. Bank Details Management
+
+Manage telecaller bank details for payments and withdrawals.
+
+### Get Bank Details
+
+Retrieve current bank details.
+
+#### Get Bank Details Endpoint
+
+```text
+GET /telecaller/bank-details
+```
+
+#### Get Bank Details Headers
+
+| Header | Value | Required |
+| --- | --- | --- |
+| Authorization | Bearer {token} | Yes |
+
+#### Get Bank Details Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "Bank details retrieved successfully.",
+  "data": {
+    "accountNumber": "123456789012",
+    "ifscCode": "HDFC0001234",
+    "accountHolderName": "Jane Smith"
+  }
+}
+```
+
+#### Get Bank Details Success Response - No Details (200)
+
+```json
+{
+  "success": true,
+  "message": "No bank details found.",
+  "data": null
+}
+```
+
+#### Get Bank Details Error Responses
+
+##### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "message": "Authentication token is required."
+}
+```
+
+##### Access Denied (403)
+
+```json
+{
+  "success": false,
+  "message": "Access denied. Requires TELECALLER role."
+}
+```
+
+#### Get Bank Details Example - cURL
+
+```bash
+curl -X GET http://localhost:8000/telecaller/bank-details \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### Add Bank Details
+
+Add or update bank details for the telecaller.
+
+#### Add Bank Details Endpoint
+
+```text
+POST /telecaller/bank-details
+```
+
+#### Add Bank Details Headers
+
+| Header | Value | Required |
+| --- | --- | --- |
+| Authorization | Bearer {token} | Yes |
+| Content-Type | application/json | Yes |
+
+#### Add Bank Details Request Body
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| accountNumber | string | Yes | 9-18 digits only |
+| ifscCode | string | Yes | Valid IFSC format (XXXX0XXXXXX) |
+| accountHolderName | string | Yes | 3-100 characters, letters and spaces only |
+
+#### Add Bank Details Request Example
+
+```json
+{
+  "accountNumber": "123456789012",
+  "ifscCode": "HDFC0001234",
+  "accountHolderName": "Jane Smith"
+}
+```
+
+#### Add Bank Details Success Response (201)
+
+```json
+{
+  "success": true,
+  "message": "Bank details added successfully.",
+  "data": {
+    "accountNumber": "123456789012",
+    "ifscCode": "HDFC0001234",
+    "accountHolderName": "Jane Smith"
+  }
+}
+```
+
+#### Add Bank Details Error Responses
+
+##### Validation Error - Invalid Account Number (400)
+
+```json
+{
+  "success": false,
+  "message": "Account number must be 9-18 digits."
+}
+```
+
+##### Validation Error - Invalid IFSC Code (400)
+
+```json
+{
+  "success": false,
+  "message": "Invalid IFSC code format."
+}
+```
+
+##### Validation Error - Invalid Account Holder Name (400)
+
+```json
+{
+  "success": false,
+  "message": "Account holder name can only contain letters and spaces."
+}
+```
+
+##### Add Bank Details - Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "message": "Authentication token is required."
+}
+```
+
+##### Add Bank Details - Access Denied (403)
+
+```json
+{
+  "success": false,
+  "message": "Access denied. Requires TELECALLER role."
+}
+```
+
+#### Add Bank Details Example - cURL
+
+```bash
+curl -X POST http://localhost:8000/telecaller/bank-details \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "accountNumber": "123456789012",
+    "ifscCode": "HDFC0001234",
+    "accountHolderName": "Jane Smith"
+  }'
+```
+
+### Delete Bank Details
+
+Remove existing bank details.
+
+#### Delete Bank Details Endpoint
+
+```text
+DELETE /telecaller/bank-details
+```
+
+#### Delete Bank Details Headers
+
+| Header | Value | Required |
+| --- | --- | --- |
+| Authorization | Bearer {token} | Yes |
+
+#### Delete Bank Details Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "Bank details removed successfully."
+}
+```
+
+#### Delete Bank Details Error Responses
+
+##### Delete Bank Details - Bank Details Not Found (404)
+
+```json
+{
+  "success": false,
+  "message": "Bank details not found."
+}
+```
+
+##### Delete Bank Details - Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "message": "Authentication token is required."
+}
+```
+
+##### Delete Bank Details - Access Denied (403)
+
+```json
+{
+  "success": false,
+  "message": "Access denied. Requires TELECALLER role."
+}
+```
+
+#### Delete Bank Details Example - cURL
+
+```bash
+curl -X DELETE http://localhost:8000/telecaller/bank-details \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ## 📊 Response Fields Reference

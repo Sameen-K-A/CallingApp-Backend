@@ -21,7 +21,7 @@ const transactionSchema = new Schema<ITransaction>({
   },
   status: {
     type: String,
-    enum: ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED'],
+    enum: ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'REJECTED'],
     required: true,
     default: 'PENDING',
     index: true
@@ -53,6 +53,20 @@ const transactionSchema = new Schema<ITransaction>({
     type: String,
     index: true,
     sparse: true
+  },
+  bankDetails: {
+    accountNumber: {
+      type: String
+    },
+    ifscCode: {
+      type: String
+    },
+    accountHolderName: {
+      type: String
+    }
+  },
+  processedAt: {
+    type: Date
   }
 }, {
   timestamps: true,

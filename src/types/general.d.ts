@@ -13,6 +13,12 @@ export interface IOTP extends Document {
   expiresAt: Date;
 }
 
+export interface IBankDetails {
+  accountNumber: string;
+  ifscCode: string;
+  accountHolderName: string;
+}
+
 export interface IUserBase extends Document {
   _id: Types.ObjectId
   phone: string
@@ -35,7 +41,7 @@ export interface ITransaction extends Document {
   userId: Types.ObjectId
   type: 'RECHARGE' | 'WITHDRAWAL'
   amount: number
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REJECTED'
   createdAt: Date
   updatedAt: Date
 
@@ -48,6 +54,8 @@ export interface ITransaction extends Document {
   // For WITHDRAWAL
   payoutId?: string
   utr?: string
+  bankDetails?: IBankDetails
+  processedAt?: Date
 };
 
 export interface IReport extends Document {

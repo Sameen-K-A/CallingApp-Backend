@@ -67,6 +67,17 @@ const userSchema = new Schema<IUserDocument>({
     presence: {
       type: String,
       enum: ['ONLINE', 'OFFLINE', 'ON_CALL']
+    },
+    bankDetails: {
+      accountNumber: {
+        type: String
+      },
+      ifscCode: {
+        type: String
+      },
+      accountHolderName: {
+        type: String
+      }
     }
   }
 }, {

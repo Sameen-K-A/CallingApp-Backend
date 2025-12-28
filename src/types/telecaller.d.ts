@@ -1,4 +1,4 @@
-import { IUserBase } from './general'
+import { IBankDetails, IUserBase } from './general'
 
 export interface ITelecaller extends IUserBase {
   role: 'TELECALLER'
@@ -7,6 +7,7 @@ export interface ITelecaller extends IUserBase {
     approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
     verificationNotes?: string
     presence: 'ONLINE' | 'OFFLINE' | 'ON_CALL'
+    bankDetails?: IBankDetails;
   }
   favorites?: undefined
 };
