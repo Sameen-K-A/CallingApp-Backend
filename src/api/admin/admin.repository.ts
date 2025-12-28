@@ -13,7 +13,8 @@ import {
   PlanListResponse,
   PlanDetailsResponse,
   CreatePlanInput,
-  UpdatePlanInput
+  UpdatePlanInput,
+  UpdateConfigInput,
 } from './admin.types'
 import AdminModel from '../../models/admin.model'
 import UserModel from '../../models/user.model'
@@ -24,6 +25,8 @@ import mongoose from 'mongoose'
 import { IReport, IUserDocument } from '../../types/general'
 import CallModel from '../../models/call.model'
 import PlanModel from '../../models/plan.model'
+import { IAppConfigDocument } from '../../types/config'
+import { getConfigDocument, updateConfig } from '../../services/config.service';
 
 export class AdminRepository implements IAdminRepository {
 
@@ -676,5 +679,14 @@ export class AdminRepository implements IAdminRepository {
 
     return !!result
   };
+
+  // Config Management
+  public async getConfig(): Promise<IAppConfigDocument | null> {
+    return getConfigDocument();
+  }
+
+  public async updateConfig(data: UpdateConfigInput): Promise<IAppConfigDocument> {
+    return updateConfig(data);
+  }
 
 };

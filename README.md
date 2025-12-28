@@ -69,12 +69,14 @@ backend/
 │   ├── models/
 │   │   ├── admin.model.ts                  # Admin MongoDB schema
 │   │   ├── call.model.ts                   # Call history MongoDB schema
+│   │   ├── config.model.ts                 # Application configuration MongoDB schema
 │   │   ├── otp.model.ts                    # OTP MongoDB schema
 │   │   ├── plan.model.ts                   # Recharge plan MongoDB schema
 │   │   ├── report.model.ts                 # Report MongoDB schema
 │   │   ├── transaction.model.ts            # Transaction MongoDB schema
 │   │   └── user.model.ts                   # User MongoDB schema
-│   ├── service/
+│   ├── services/
+│   │   ├── config.service.ts               # Application configuration management service
 │   │   └── livekit.service.ts              # LiveKit token generation and destroy room
 │   ├── socket/
 │   │   ├── middleware/
@@ -93,6 +95,7 @@ backend/
 │   │   └── index.ts                        # Socket.IO initialization
 │   ├── types/                      
 │   │   │   ├── admin.d.ts                  # Admin type declarations
+│   │   │   ├── config.d.ts                 # Application configuration type declarations
 │   │   │   ├── general.d.ts                # General/shared type declarations
 │   │   │   ├── telecaller.d.ts             # Telecaller type declarations
 │   │   │   └── user.d.ts                   # User type declarations

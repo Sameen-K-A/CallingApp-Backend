@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
-import { IAdminService } from './admin.types'
+import { IAdminService, UpdateConfigInput } from './admin.types'
 import { BaseController } from '../../utils/baseController';
 
 export class AdminController extends BaseController {
@@ -304,6 +304,38 @@ export class AdminController extends BaseController {
       })
     } catch (error) {
       next(error)
+    }
+  };
+
+  // ============================================
+  // Config Management
+  // ============================================
+  public getConfig = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const config = await this.adminService.getConfig();
+
+      res.status(200).json({
+        success: true,
+        message: 'Configuration retrieved successfully.',
+        data: config,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public updateConfig = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data: UpdateConfigInput = req.body;
+      const config = await this.adminService.updateConfig(data);
+
+      res.status(200).json({
+        success: true,
+        message: 'Configuration updated successfully.',
+        data: config,
+      });
+    } catch (error) {
+      next(error);
     }
   };
 

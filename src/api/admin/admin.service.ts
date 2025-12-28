@@ -14,7 +14,9 @@ import {
   PlanListResponse,
   PlanDetailsResponse,
   CreatePlanInput,
-  UpdatePlanInput
+  UpdatePlanInput,
+  ConfigResponse,
+  UpdateConfigInput
 } from './admin.types'
 import { createToken } from '../../utils/jwt'
 import { OAuth2Client } from 'google-auth-library'
@@ -320,6 +322,62 @@ export class AdminService implements IAdminService {
       success: true,
       message: 'Plan deleted successfully.'
     }
+  };
+
+  // ============================================
+  // Config Management
+  // ============================================
+  public async getConfig(): Promise<ConfigResponse> {
+    const config = await this.adminRepository.getConfig();
+
+    if (!config) {
+      throw new ApiError(404, 'Configuration not found.');
+    }
+
+    return {
+      withdrawal: {
+        coinToInrRatio: {
+          value: config.coinToInrRatio,
+          label: 'Coin to INR Ratio',
+          description: 'The conversion rate used when telecallers withdraw their earnings. For example, if set to 1, then 100 coins will be converted to ₹100. If set to 0.5, then 100 coins will be converted to ₹50.',
+        },
+        minWithdrawalCoins: {
+          value: config.minWithdrawalCoins,
+          label: 'Minimum Withdrawal Coins',
+          description: 'The minimum number of coins a telecaller must have to request a withdrawal. Telecallers with fewer coins than this threshold will not be able to submit a withdrawal request.',
+        },
+      },
+      videoCall: {
+        userCoinPerSec: {
+          value: config.userVideoCallCoinPerSec,
+          label: 'User Coins Per Second',
+          description: 'The number of coins deducted from the user\'s wallet for every second of an active video call. This is the rate charged to users for video calling telecallers.',
+        },
+        telecallerCoinPerSec: {
+          value: config.telecallerVideoCallCoinPerSec,
+          label: 'Telecaller Coins Per Second',
+          description: 'The number of coins credited to the telecaller\'s wallet for every second of an active video call. This is the earning rate for telecallers when they receive video calls.',
+        },
+      },
+      audioCall: {
+        userCoinPerSec: {
+          value: config.userAudioCallCoinPerSec,
+          label: 'User Coins Per Second',
+          description: 'The number of coins deducted from the user\'s wallet for every second of an active audio call. This is the rate charged to users for audio calling telecallers.',
+        },
+        telecallerCoinPerSec: {
+          value: config.telecallerAudioCallCoinPerSec,
+          label: 'Telecaller Coins Per Second',
+          description: 'The number of coins credited to the telecaller\'s wallet for every second of an active audio call. This is the earning rate for telecallers when they receive audio calls.',
+        },
+      },
+      updatedAt: config.updatedAt,
+    };
+  };
+
+  public async updateConfig(data: UpdateConfigInput): Promise<ConfigResponse> {
+    await this.adminRepository.updateConfig(data);
+    return this.getConfig();
   };
 
 };

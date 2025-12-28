@@ -1,5 +1,6 @@
 import { IAdmin } from '../../types/admin'
 import { IUserDocument, IReport } from '../../types/general'
+import { IAppConfig, IAppConfigDocument, ConfigGroupedResponse } from '../../types/config';
 
 // ============================================
 // DTOs (Data Transfer Objects) for API Responses
@@ -228,6 +229,13 @@ export interface DashboardStatsResponse {
 };
 
 // ============================================
+// Config DTOs
+// ============================================
+
+export type UpdateConfigInput = Partial<IAppConfig>;
+export type ConfigResponse = ConfigGroupedResponse;
+
+// ============================================
 // Pagination Wrappers
 // ============================================
 
@@ -271,6 +279,9 @@ export interface IAdminRepository {
   createPlan(data: CreatePlanInput): Promise<PlanDetailsResponse>
   updatePlan(planId: string, data: UpdatePlanInput): Promise<PlanDetailsResponse | null>
   deletePlan(planId: string): Promise<boolean>
+  // Config Management
+  getConfig(): Promise<IAppConfigDocument | null>
+  updateConfig(data: UpdateConfigInput): Promise<IAppConfigDocument>
 };
 
 export interface IAdminService {
@@ -294,4 +305,7 @@ export interface IAdminService {
   createPlan(data: CreatePlanInput): Promise<PlanDetailsResponse>
   updatePlan(planId: string, data: UpdatePlanInput): Promise<PlanDetailsResponse>
   deletePlan(planId: string): Promise<{ success: boolean; message: string }>
+  // Config Management
+  getConfig(): Promise<ConfigResponse>
+  updateConfig(data: UpdateConfigInput): Promise<ConfigResponse>
 };

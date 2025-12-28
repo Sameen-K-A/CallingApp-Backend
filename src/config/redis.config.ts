@@ -57,6 +57,9 @@ export const REDIS_KEYS = {
   // Reverse lookup (socket -> user)
   SOCKET_USER: (socketId: string) => `socket:user:${socketId}`,
   SOCKET_TELECALLER: (socketId: string) => `socket:telecaller:${socketId}`,
+
+  // App Configuration
+  APP_CONFIG: 'app:config',
 };
 
 

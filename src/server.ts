@@ -9,6 +9,7 @@ import { testRedisConnection, closeRedisConnection } from './config/redis.config
 import { initializeSocketIO, setIOInstance, cleanupSocketIO } from './socket';
 import { resetAllTelecallerPresence } from './socket/services/presence.service';
 import { cleanupStaleRingingCalls } from './socket/services/call.service';
+import { initializeConfig, cleanupConfig } from './services/config.service';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -20,6 +21,7 @@ const startServer = async (): Promise<void> => {
       process.exit(1);
     };
 
+    await initializeConfig();
     await resetAllTelecallerPresence();
     await cleanupStaleRingingCalls();
 
@@ -48,6 +50,7 @@ const startServer = async (): Promise<void> => {
       console.log('🔌 Socket.IO closed.');
 
       try {
+        await cleanupConfig();
         await closeRedisConnection();
 
         await mongoose.connection.close(false);

@@ -16,7 +16,8 @@ import {
   userIdParamSchema,
   planIdParamSchema,
   createPlanSchema,
-  updatePlanSchema
+  updatePlanSchema,
+  updateConfigSchema
 } from '../../middleware/validation/admin.validation';
 import { authenticate } from '../../utils/jwt';
 
@@ -57,5 +58,9 @@ router.get('/plans', authenticate('ADMIN'), validateQuery(paginationSchema), con
 router.post('/plans', authenticate('ADMIN'), validateBody(createPlanSchema), controller.createPlan);
 router.put('/plans/:id', authenticate('ADMIN'), validateParams(planIdParamSchema), validateBody(updatePlanSchema), controller.updatePlan);
 router.delete('/plans/:id', authenticate('ADMIN'), validateParams(planIdParamSchema), controller.deletePlan);
+
+// Configuration Management
+router.get('/config', authenticate('ADMIN'), controller.getConfig);
+router.put('/config', authenticate('ADMIN'), validateBody(updateConfigSchema), controller.updateConfig);
 
 export { router as adminRouter };

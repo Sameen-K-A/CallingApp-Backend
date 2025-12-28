@@ -238,3 +238,60 @@ export const updatePlanSchema = Joi.object({
 }).min(1).messages({
   'object.min': 'At least one field is required to update.'
 })
+
+export const updateConfigSchema = Joi.object({
+  coinToInrRatio: Joi
+    .number()
+    .min(0.01)
+    .messages({
+      'number.base': 'Coin to INR ratio must be a number.',
+      'number.min': 'Coin to INR ratio must be at least 0.01.',
+    }),
+  minWithdrawalCoins: Joi
+    .number()
+    .integer()
+    .min(1)
+    .messages({
+      'number.base': 'Minimum withdrawal coins must be a number.',
+      'number.integer': 'Minimum withdrawal coins must be a whole number.',
+      'number.min': 'Minimum withdrawal coins must be at least 1.',
+    }),
+  userVideoCallCoinPerSec: Joi
+    .number()
+    .integer()
+    .min(1)
+    .messages({
+      'number.base': 'User video call coins must be a number.',
+      'number.integer': 'User video call coins must be a whole number.',
+      'number.min': 'User video call coins must be at least 1.',
+    }),
+  userAudioCallCoinPerSec: Joi
+    .number()
+    .integer()
+    .min(1)
+    .messages({
+      'number.base': 'User audio call coins must be a number.',
+      'number.integer': 'User audio call coins must be a whole number.',
+      'number.min': 'User audio call coins must be at least 1.',
+    }),
+  telecallerVideoCallCoinPerSec: Joi
+    .number()
+    .integer()
+    .min(1)
+    .messages({
+      'number.base': 'Telecaller video call coins must be a number.',
+      'number.integer': 'Telecaller video call coins must be a whole number.',
+      'number.min': 'Telecaller video call coins must be at least 1.',
+    }),
+  telecallerAudioCallCoinPerSec: Joi
+    .number()
+    .integer()
+    .min(1)
+    .messages({
+      'number.base': 'Telecaller audio call coins must be a number.',
+      'number.integer': 'Telecaller audio call coins must be a whole number.',
+      'number.min': 'Telecaller audio call coins must be at least 1.',
+    }),
+}).min(1).messages({
+  'object.min': 'At least one configuration field is required.',
+});

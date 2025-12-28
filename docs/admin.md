@@ -60,6 +60,13 @@ Admin endpoints for dashboard, user management, telecaller management, transacti
 | PUT | `/admin/plans/:id` | Update plan | Yes (ADMIN) |
 | DELETE | `/admin/plans/:id` | Delete plan | Yes (ADMIN) |
 
+### Configuration Management
+
+| Method | Endpoint | Description | Auth Required |
+| --- | --- | --- | --- |
+| GET | `/admin/config` | Get application configuration | Yes (ADMIN) |
+| PUT | `/admin/config` | Update application configuration | Yes (ADMIN) |
+
 ---
 
 ## 🔐 Authorization
@@ -1370,3 +1377,212 @@ curl -X DELETE http://localhost:8000/admin/plans/507f1f77bcf86cd799439094 \
 | isActive | boolean | Plan availability |
 | createdAt | string | Creation timestamp |
 | updatedAt | string | Last update timestamp |
+
+---
+
+## ⚙️ Configuration Management
+
+Application configuration management endpoints for admin panel settings.
+
+---
+
+## 📖 20. Get Configuration
+
+Retrieve current application configuration settings.
+
+### Get Configuration Endpoint
+
+GET `/admin/config`
+
+### Get Configuration Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "Configuration retrieved successfully.",
+  "data": {
+    "withdrawal": {
+      "coinToInrRatio": {
+        "value": 0.1,
+        "label": "Coin to INR Ratio",
+        "description": "Conversion rate from coins to Indian Rupees"
+      },
+      "minWithdrawalCoins": {
+        "value": 100,
+        "label": "Minimum Withdrawal Coins",
+        "description": "Minimum coins required for withdrawal"
+      }
+    },
+    "videoCall": {
+      "userCoinPerSec": {
+        "value": 2,
+        "label": "User Video Call Coins/Second",
+        "description": "Coins charged per second for user video calls"
+      },
+      "telecallerCoinPerSec": {
+        "value": 1,
+        "label": "Telecaller Video Call Coins/Second",
+        "description": "Coins earned per second for telecaller video calls"
+      }
+    },
+    "audioCall": {
+      "userCoinPerSec": {
+        "value": 1,
+        "label": "User Audio Call Coins/Second",
+        "description": "Coins charged per second for user audio calls"
+      },
+      "telecallerCoinPerSec": {
+        "value": 1,
+        "label": "Telecaller Audio Call Coins/Second",
+        "description": "Coins earned per second for telecaller audio calls"
+      }
+    },
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### Get Configuration Example - cURL
+
+```bash
+curl -X GET \
+  http://localhost:3000/admin/config \
+  -H "Cookie: authenticationToken=your_jwt_token"
+```
+
+---
+
+## 📝 21. Update Configuration
+
+Update application configuration settings.
+
+### Update Configuration Endpoint
+
+PUT `/admin/config`
+
+### Update Configuration Request Body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| coinToInrRatio | number | No | Coin to INR conversion rate (min: 0.01) |
+| minWithdrawalCoins | number | No | Minimum coins for withdrawal (min: 1) |
+| userVideoCallCoinPerSec | number | No | User video call coins per second (min: 1) |
+| userAudioCallCoinPerSec | number | No | User audio call coins per second (min: 1) |
+| telecallerVideoCallCoinPerSec | number | No | Telecaller video call coins per second (min: 1) |
+| telecallerAudioCallCoinPerSec | number | No | Telecaller audio call coins per second (min: 1) |
+
+**Note:** At least one configuration field must be provided.
+
+```json
+{
+  "coinToInrRatio": 0.15,
+  "minWithdrawalCoins": 150,
+  "userVideoCallCoinPerSec": 3
+}
+```
+
+### Update Configuration Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "Configuration updated successfully.",
+  "data": {
+    "withdrawal": {
+      "coinToInrRatio": {
+        "value": 0.15,
+        "label": "Coin to INR Ratio",
+        "description": "Conversion rate from coins to Indian Rupees"
+      },
+      "minWithdrawalCoins": {
+        "value": 150,
+        "label": "Minimum Withdrawal Coins",
+        "description": "Minimum coins required for withdrawal"
+      }
+    },
+    "videoCall": {
+      "userCoinPerSec": {
+        "value": 3,
+        "label": "User Video Call Coins/Second",
+        "description": "Coins charged per second for user video calls"
+      },
+      "telecallerCoinPerSec": {
+        "value": 1,
+        "label": "Telecaller Video Call Coins/Second",
+        "description": "Coins earned per second for telecaller video calls"
+      }
+    },
+    "audioCall": {
+      "userCoinPerSec": {
+        "value": 1,
+        "label": "User Audio Call Coins/Second",
+        "description": "Coins charged per second for user audio calls"
+      },
+      "telecallerCoinPerSec": {
+        "value": 1,
+        "label": "Telecaller Audio Call Coins/Second",
+        "description": "Coins earned per second for telecaller audio calls"
+      }
+    },
+    "updatedAt": "2024-01-15T10:35:00.000Z"
+  }
+}
+```
+
+### Update Configuration Error Responses
+
+#### Update config, Validation Error (400)
+
+```json
+{
+  "success": false,
+  "message": "Coin to INR ratio must be at least 0.01."
+}
+```
+
+#### Update config, No Fields Provided (400)
+
+```json
+{
+  "success": false,
+  "message": "At least one configuration field is required."
+}
+```
+
+### Update Configuration Example - cURL
+
+```bash
+curl -X PUT \
+  http://localhost:3000/admin/config \
+  -H "Content-Type: application/json" \
+  -H "Cookie: authenticationToken=your_jwt_token" \
+  -d '{
+    "coinToInrRatio": 0.15,
+    "minWithdrawalCoins": 150
+  }'
+```
+
+---
+
+## 📋 Configuration Fields
+
+### Withdrawal Configuration
+
+| Field | Type | Description |
+| --- | --- | --- |
+| coinToInrRatio | number | Conversion rate from coins to Indian Rupees |
+| minWithdrawalCoins | number | Minimum coins required for withdrawal |
+
+### Video Call Configuration
+
+| Field | Type | Description |
+| --- | --- | --- |
+| userCoinPerSec | number | Coins charged per second for user video calls |
+| telecallerCoinPerSec | number | Coins earned per second for telecaller video calls |
+
+### Audio Call Configuration
+
+| Field | Type | Description |
+| --- | --- | --- |
+| userCoinPerSec | number | Coins charged per second for user audio calls |
+| telecallerCoinPerSec | number | Coins earned per second for telecaller audio calls |
