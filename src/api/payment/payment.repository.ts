@@ -26,7 +26,7 @@ export class PaymentRepository implements IPaymentRepository {
   public async findPlanById(planId: string): Promise<PlanForPayment | null> {
     return PlanModel
       .findOne({ _id: planId, isActive: true, isDeleted: false })
-      .select('_id amount coins')
+      .select('_id amount coins discountPercentage')
       .lean<PlanForPayment>();
   }
 

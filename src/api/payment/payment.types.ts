@@ -89,6 +89,7 @@ export interface PlanForPayment {
   _id: Types.ObjectId;
   amount: number;
   coins: number;
+  discountPercentage: number;
 }
 
 export interface TransactionForVerification {

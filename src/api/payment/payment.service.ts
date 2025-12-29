@@ -37,14 +37,17 @@ export class PaymentService implements IPaymentService {
       throw new ApiError(404, 'Plan not found or is no longer available.');
     }
 
-    const amountInPaise = plan.amount * 100;
+    // Calculate discounted amount
+    const discountAmount = (plan.amount * plan.discountPercentage) / 100;
+    const finalAmount = plan.amount - discountAmount;
+    const amountInPaise = Math.round(finalAmount * 100);
 
     let razorpayOrder;
     try {
       razorpayOrder = await razorpayInstance.orders.create({
         amount: amountInPaise,
         currency: 'INR',
-        receipt: `rcpt_${userId}_${Date.now()}`,
+        receipt: `rcpt_${crypto.randomBytes(6).toString('hex')}`,
         notes: {
           userId: userId,
           planId: dto.planId,
@@ -59,7 +62,7 @@ export class PaymentService implements IPaymentService {
     await this.paymentRepository.createTransaction({
       userId: new Types.ObjectId(userId),
       type: 'RECHARGE',
-      amount: plan.amount,
+      amount: finalAmount,
       coins: plan.coins,
       status: 'PENDING',
       gatewayOrderId: razorpayOrder.id,
