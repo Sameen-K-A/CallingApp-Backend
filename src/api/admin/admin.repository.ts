@@ -370,8 +370,9 @@ export class AdminRepository implements IAdminRepository {
       {
         $set: {
           'telecallerProfile.approvalStatus': status,
-          ...(adminNotes && { 'telecallerProfile.verificationNotes': adminNotes })
-        }
+          ...(status === 'REJECTED' && adminNotes && { 'telecallerProfile.verificationNotes': adminNotes })
+        },
+        ...(status === 'APPROVED' && { $unset: { 'telecallerProfile.verificationNotes': '' } })
       },
       { new: true }
     )
