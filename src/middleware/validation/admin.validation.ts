@@ -322,3 +322,15 @@ export const completeWithdrawalSchema = Joi.object({
       'any.required': 'Transfer reference is required.'
     })
 });
+
+// User Distribution Chart validation
+export const userDistributionQuerySchema = Joi.object({
+  period: Joi
+    .string()
+    .valid('today', 'last7days', 'last30days', 'all')
+    .required()
+    .messages({
+      'any.only': 'Period must be one of: today, last7days, last30days, all.',
+      'any.required': 'Period is required.'
+    })
+});

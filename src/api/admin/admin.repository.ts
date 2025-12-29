@@ -10,6 +10,8 @@ import {
   ReportDetailsResponse,
   UserDetailsResponse,
   DashboardStatsResponse,
+  UserDistributionPeriod,
+  UserDistributionResponse,
   PlanListResponse,
   PlanDetailsResponse,
   CreatePlanInput,
@@ -672,6 +674,44 @@ export class AdminRepository implements IAdminRepository {
         totalDurationMinutes,
         averageDurationSeconds
       }
+    };
+  };
+
+  // Get user distribution counts based on time period
+  public async getUserDistribution(period: UserDistributionPeriod): Promise<UserDistributionResponse> {
+    let dateFilter: { createdAt?: { $gte: Date } } = {};
+
+    if (period !== 'all') {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (period) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          break;
+        case 'last7days':
+          startDate = new Date(now);
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case 'last30days':
+          startDate = new Date(now);
+          startDate.setDate(startDate.getDate() - 30);
+          break;
+        default:
+          startDate = new Date(0); // Beginning of time
+      }
+
+      dateFilter = { createdAt: { $gte: startDate } };
+    }
+
+    const [usersCount, telecallersCount] = await Promise.all([
+      UserModel.countDocuments({ role: 'USER', ...dateFilter }),
+      UserModel.countDocuments({ role: 'TELECALLER', ...dateFilter })
+    ]);
+
+    return {
+      users: usersCount,
+      telecallers: telecallersCount
     };
   };
 

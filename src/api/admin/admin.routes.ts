@@ -19,7 +19,8 @@ import {
   updatePlanSchema,
   updateConfigSchema,
   withdrawalIdParamSchema,
-  completeWithdrawalSchema
+  completeWithdrawalSchema,
+  userDistributionQuerySchema
 } from '../../middleware/validation/admin.validation';
 import { authenticate } from '../../utils/jwt';
 
@@ -33,6 +34,7 @@ router.post('/auth/google', validateBody(googleLoginSchema), controller.googleLo
 
 // Dashboard stats
 router.get('/dashboard/stats', authenticate('ADMIN'), controller.getDashboardStats);
+router.get('/dashboard/user-distribution', authenticate('ADMIN'), validateQuery(userDistributionQuerySchema), controller.getUserDistribution);
 
 // User actions
 router.get('/users', authenticate('ADMIN'), validateQuery(paginationSchema), controller.getUsers);

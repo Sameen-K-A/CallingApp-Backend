@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
-import { IAdminService, UpdateConfigInput } from './admin.types'
+import { IAdminService, UpdateConfigInput, UserDistributionPeriod } from './admin.types'
 import { BaseController } from '../../utils/baseController';
 
 export class AdminController extends BaseController {
@@ -235,6 +235,21 @@ export class AdminController extends BaseController {
       res.status(200).json({
         success: true,
         data: stats
+      })
+    } catch (error) {
+      next(error)
+    }
+  };
+
+  public getUserDistribution = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const period = req.query.period as UserDistributionPeriod
+      const data = await this.adminService.getUserDistribution(period)
+
+      res.status(200).json({
+        success: true,
+        message: 'User distribution fetched successfully',
+        data
       })
     } catch (error) {
       next(error)

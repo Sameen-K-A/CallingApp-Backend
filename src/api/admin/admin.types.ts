@@ -262,6 +262,14 @@ export interface DashboardStatsResponse {
   };
 };
 
+// User Distribution Chart Response
+export type UserDistributionPeriod = 'today' | 'last7days' | 'last30days' | 'all';
+
+export interface UserDistributionResponse {
+  users: number;
+  telecallers: number;
+}
+
 // ============================================
 // Config DTOs
 // ============================================
@@ -307,6 +315,7 @@ export interface IAdminRepository {
   findTelecallerById(telecallerId: string): Promise<IUserDocument | null>
   updateTelecallerStatus(telecallerId: string, status: 'APPROVED' | 'REJECTED', adminNotes?: string): Promise<IUserDocument | null>
   getDashboardStats(): Promise<DashboardStatsResponse>
+  getUserDistribution(period: UserDistributionPeriod): Promise<UserDistributionResponse>
   // Plan Management
   getAllPlans(page: number, limit: number): Promise<PaginatedResult<PlanListResponse>>
   getPlanById(planId: string): Promise<PlanDetailsResponse | null>
@@ -339,6 +348,7 @@ export interface IAdminService {
   blockUser(userId: string): Promise<{ success: boolean, message: string }>
   unblockUser(userId: string): Promise<{ success: boolean, message: string }>
   getDashboardStats(): Promise<DashboardStatsResponse>
+  getUserDistribution(period: UserDistributionPeriod): Promise<UserDistributionResponse>
   // Plan Management
   getPlans(page: number, limit: number): Promise<PaginatedResponse<PlanListResponse>>
   createPlan(data: CreatePlanInput): Promise<PlanDetailsResponse>

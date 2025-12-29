@@ -11,6 +11,8 @@ import {
   ReportDetailsResponse,
   UserDetailsResponse,
   DashboardStatsResponse,
+  UserDistributionPeriod,
+  UserDistributionResponse,
   PlanListResponse,
   PlanDetailsResponse,
   CreatePlanInput,
@@ -276,6 +278,10 @@ export class AdminService implements IAdminService {
   // =========================== Dashboard management========================
   public async getDashboardStats(): Promise<DashboardStatsResponse> {
     return await this.adminRepository.getDashboardStats();
+  };
+
+  public async getUserDistribution(period: UserDistributionPeriod): Promise<UserDistributionResponse> {
+    return await this.adminRepository.getUserDistribution(period);
   };
 
   // ============================================
