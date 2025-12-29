@@ -13,6 +13,7 @@ import {
 import { ApiError } from '../../middleware/errors/ApiError'
 import { isTelecaller } from '../../utils/guards'
 import { IUserDocument } from '../../types/general';
+import { getConfigValues } from '../../services/config.service';
 
 const MAX_FAVORITES_LIMIT = 50;
 
@@ -189,12 +190,19 @@ export class UserService implements IUserService {
     return { success: true, message: 'Removed from favorites successfully.' }
   };
 
-  public async getTelecallers(userId: string, page: number, limit: number): Promise<PaginatedTelecallersResponse> {
+  public async getTelecallers(userId: string, page: number, limit: number): Promise<PaginatedTelecallersResponse & { audioCallCharge: number; videoCallCharge: number }> {
     const user = await this.userRepository.findUserById(userId)
     this.checkUserAndAccountStatus(user)
 
     const { telecallers, total } = await this.userRepository.findApprovedTelecallers(userId, page, limit)
-    return { telecallers, hasMore: page * limit < total }
+    const config = await getConfigValues(['userAudioCallCoinPerSec', 'userVideoCallCoinPerSec']);
+
+    return {
+      telecallers,
+      hasMore: page * limit < total,
+      audioCallCharge: config.userAudioCallCoinPerSec,
+      videoCallCharge: config.userVideoCallCoinPerSec,
+    };
   };
 
 };

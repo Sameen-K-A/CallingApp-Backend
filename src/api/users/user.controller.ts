@@ -121,7 +121,12 @@ export class UserController extends BaseController {
       res.status(200).json({
         success: true,
         message: 'Telecallers fetched successfully.',
-        data: result
+        data: {
+          data: result.telecallers,
+          hasMore: result.hasMore,
+          audioCallCharge: result.audioCallCharge,
+          videoCallCharge: result.videoCallCharge,
+        }
       })
     } catch (error) {
       next(error)

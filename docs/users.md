@@ -15,7 +15,7 @@ User endpoints for profile management, favorites, and telecaller listings.
 | GET | `/users/favorites` | Get favorite telecallers | Yes |
 | POST | `/users/favorites/:telecallerId` | Add telecaller to favorites | Yes |
 | DELETE | `/users/favorites/:telecallerId` | Remove telecaller from favorites | Yes |
-| GET | `/users/telecallers` | Get online telecallers list | Yes |
+| GET | `/users/telecallers` | Get online, on_call telecallers list with call charges | Yes |
 
 ---
 
@@ -713,7 +713,7 @@ curl -X DELETE http://localhost:8000/users/favorites/507f1f77bcf86cd799439031 \
 
 ## 📞 8. Get Telecallers
 
-Get list of online/on-call telecallers with pagination. Only shows APPROVED telecallers who are ONLINE or ON_CALL.
+Get list of online/on-call telecallers with pagination and current call charges. Only shows APPROVED telecallers who are ONLINE or ON_CALL. Response includes audio and video call charges per second.
 
 ### Get Telecallers Endpoint
 
@@ -741,7 +741,7 @@ GET `/users/telecallers`
   "success": true,
   "message": "Telecallers fetched successfully.",
   "data": {
-    "telecallers": [
+    "data": [
       {
         "_id": "507f1f77bcf86cd799439031",
         "name": "Jane Smith",
@@ -761,7 +761,9 @@ GET `/users/telecallers`
         "isFavorite": false
       }
     ],
-    "hasMore": true
+    "hasMore": true,
+    "audioCallCharge": 2,
+    "videoCallCharge": 3
   }
 }
 ```
@@ -773,8 +775,10 @@ GET `/users/telecallers`
   "success": true,
   "message": "Telecallers fetched successfully.",
   "data": {
-    "telecallers": [],
-    "hasMore": false
+    "data": [],
+    "hasMore": false,
+    "audioCallCharge": 2,
+    "videoCallCharge": 3
   }
 }
 ```
@@ -825,3 +829,12 @@ curl -X GET "http://localhost:8000/users/telecallers?page=1&limit=15" \
 | about | string | Telecaller's bio |
 | presence | string | ONLINE, OFFLINE, or ON_CALL |
 | isFavorite | boolean | Whether user has favorited (only in telecallers list) |
+
+### Get Telecallers Response Structure
+
+| Field | Type | Description |
+| --- | --- | --- |
+| data | array | Array of telecaller objects |
+| hasMore | boolean | Whether more results are available |
+| audioCallCharge | number | Coins charged per second for audio calls |
+| videoCallCharge | number | Coins charged per second for video calls |

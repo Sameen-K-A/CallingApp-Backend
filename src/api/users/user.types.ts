@@ -123,5 +123,5 @@ export interface IUserService {
   getFavorites(userId: string, page: number, limit: number): Promise<PaginatedFavoritesResponse>
   addToFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse>
   removeFromFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse>
-  getTelecallers(userId: string, page: number, limit: number): Promise<PaginatedTelecallersResponse>
+  getTelecallers(userId: string, page: number, limit: number): Promise<PaginatedTelecallersResponse & { audioCallCharge: number; videoCallCharge: number }>
 }
