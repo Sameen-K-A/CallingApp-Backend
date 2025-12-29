@@ -1402,10 +1402,10 @@ GET `/admin/config`
   "message": "Configuration retrieved successfully.",
   "data": {
     "withdrawal": {
-      "coinToInrRatio": {
+      "inrToCoinRatio": {
         "value": 0.1,
-        "label": "Coin to INR Ratio",
-        "description": "Conversion rate from coins to Indian Rupees"
+        "label": "INR to Coin Ratio",
+        "description": "This setting controls how many coins equal ₹1 when calculating withdrawal amounts. For example, if set to 1, then 1 coin equals ₹1, so 500 coins will be worth ₹500. If set to 2, then 2 coins equal ₹1, meaning 500 coins would be worth ₹250. A higher value means telecallers need more coins to earn the same amount of money."
       },
       "minWithdrawalCoins": {
         "value": 100,
@@ -1464,7 +1464,7 @@ PUT `/admin/config`
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| coinToInrRatio | number | No | Coin to INR conversion rate (min: 0.01) |
+| inrToCoinRatio | number | No | INR to coin conversion rate (min: 0.01) |
 | minWithdrawalCoins | number | No | Minimum coins for withdrawal (min: 1) |
 | userVideoCallCoinPerSec | number | No | User video call coins per second (min: 1) |
 | userAudioCallCoinPerSec | number | No | User audio call coins per second (min: 1) |
@@ -1475,7 +1475,7 @@ PUT `/admin/config`
 
 ```json
 {
-  "coinToInrRatio": 0.15,
+  "inrToCoinRatio": 0.15,
   "minWithdrawalCoins": 150,
   "userVideoCallCoinPerSec": 3
 }
@@ -1489,10 +1489,10 @@ PUT `/admin/config`
   "message": "Configuration updated successfully.",
   "data": {
     "withdrawal": {
-      "coinToInrRatio": {
+      "inrToCoinRatio": {
         "value": 0.15,
-        "label": "Coin to INR Ratio",
-        "description": "Conversion rate from coins to Indian Rupees"
+        "label": "INR to Coin Ratio",
+        "description": "This setting controls how many coins equal ₹1 when calculating withdrawal amounts. For example, if set to 1, then 1 coin equals ₹1, so 500 coins will be worth ₹500. If set to 2, then 2 coins equal ₹1, meaning 500 coins would be worth ₹250. A higher value means telecallers need more coins to earn the same amount of money."
       },
       "minWithdrawalCoins": {
         "value": 150,
@@ -1536,7 +1536,7 @@ PUT `/admin/config`
 ```json
 {
   "success": false,
-  "message": "Coin to INR ratio must be at least 0.01."
+  "message": "INR to Coin ratio must be at least 0.01."
 }
 ```
 
@@ -1557,7 +1557,7 @@ curl -X PUT \
   -H "Content-Type: application/json" \
   -H "Cookie: authenticationToken=your_jwt_token" \
   -d '{
-    "coinToInrRatio": 0.15,
+    "inrToCoinRatio": 0.15,
     "minWithdrawalCoins": 150
   }'
 ```
@@ -1570,7 +1570,7 @@ curl -X PUT \
 
 | Field | Type | Description |
 | --- | --- | --- |
-| coinToInrRatio | number | Conversion rate from coins to Indian Rupees |
+| inrToCoinRatio | number | This setting controls how many coins equal ₹1 when calculating withdrawal amounts |
 | minWithdrawalCoins | number | Minimum coins required for withdrawal |
 
 ### Video Call Configuration

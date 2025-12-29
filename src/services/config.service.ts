@@ -3,7 +3,7 @@ import ConfigModel from '../models/config.model';
 import { IAppConfig, IAppConfigDocument } from '../types/config';
 
 const DEFAULT_CONFIG: IAppConfig = {
-  coinToInrRatio: 1,
+  inrToCoinRatio: 1,
   minWithdrawalCoins: 100,
   userVideoCallCoinPerSec: 3,
   userAudioCallCoinPerSec: 2,
@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: IAppConfig = {
 // Cache config in Redis (no expiry)
 const cacheConfig = async (config: IAppConfigDocument): Promise<void> => {
   const configData: IAppConfig = {
-    coinToInrRatio: config.coinToInrRatio,
+    inrToCoinRatio: config.inrToCoinRatio,
     minWithdrawalCoins: config.minWithdrawalCoins,
     userVideoCallCoinPerSec: config.userVideoCallCoinPerSec,
     userAudioCallCoinPerSec: config.userAudioCallCoinPerSec,
@@ -71,7 +71,7 @@ export const getConfig = async (): Promise<IAppConfig> => {
     if (config) {
       await cacheConfig(config);
       return {
-        coinToInrRatio: config.coinToInrRatio,
+        inrToCoinRatio: config.inrToCoinRatio,
         minWithdrawalCoins: config.minWithdrawalCoins,
         userVideoCallCoinPerSec: config.userVideoCallCoinPerSec,
         userAudioCallCoinPerSec: config.userAudioCallCoinPerSec,

@@ -1,5 +1,5 @@
 export interface IAppConfig {
-  coinToInrRatio: number;
+  inrToCoinRatio: number;
   minWithdrawalCoins: number;
   userVideoCallCoinPerSec: number;
   userAudioCallCoinPerSec: number;
@@ -20,7 +20,7 @@ export interface ConfigDisplayField {
 
 export interface ConfigGroupedResponse {
   withdrawal: {
-    coinToInrRatio: ConfigDisplayField;
+    inrToCoinRatio: ConfigDisplayField;
     minWithdrawalCoins: ConfigDisplayField;
   };
   videoCall: {

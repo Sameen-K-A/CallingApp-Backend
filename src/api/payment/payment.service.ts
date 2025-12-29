@@ -197,13 +197,13 @@ export class PaymentService implements IPaymentService {
     // Fetch telecaller and config in parallel
     const [telecaller, config] = await Promise.all([
       this.paymentRepository.findTelecallerForWithdrawal(userId),
-      getConfigValues(['minWithdrawalCoins', 'coinToInrRatio']),
+      getConfigValues(['minWithdrawalCoins', 'inrToCoinRatio']),
     ]);
 
     // Validate telecaller
     this.validateTelecallerForWithdrawal(telecaller);
 
-    const { minWithdrawalCoins, coinToInrRatio } = config;
+    const { minWithdrawalCoins, inrToCoinRatio } = config;
     const walletBalance = telecaller.wallet.balance;
     const bankDetails = telecaller.telecallerProfile!.bankDetails!;
 
@@ -223,7 +223,7 @@ export class PaymentService implements IPaymentService {
     }
 
     // Calculate amount
-    const amount = dto.coins * coinToInrRatio;
+    const amount = dto.coins / inrToCoinRatio;
 
     // Create withdrawal transaction
     const transaction = await this.paymentRepository.createWithdrawalTransaction({

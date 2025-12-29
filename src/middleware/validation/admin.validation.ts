@@ -240,12 +240,12 @@ export const updatePlanSchema = Joi.object({
 })
 
 export const updateConfigSchema = Joi.object({
-  coinToInrRatio: Joi
+  inrToCoinRatio: Joi
     .number()
     .min(0.01)
     .messages({
-      'number.base': 'Coin to INR ratio must be a number.',
-      'number.min': 'Coin to INR ratio must be at least 0.01.',
+      'number.base': 'INR to Coin ratio must be a number.',
+      'number.min': 'INR to Coin ratio must be at least 0.01.',
     }),
   minWithdrawalCoins: Joi
     .number()

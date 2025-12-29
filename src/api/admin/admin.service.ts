@@ -336,10 +336,10 @@ export class AdminService implements IAdminService {
 
     return {
       withdrawal: {
-        coinToInrRatio: {
-          value: config.coinToInrRatio,
-          label: 'Coin to INR Ratio',
-          description: 'This setting controls how coins are converted to real money (INR) when a telecaller requests a withdrawal. If you set this to 1, it means 1 coin equals ₹1. So if a telecaller has earned 500 coins, they will receive ₹500. If you set this to 0.5, then 1 coin equals ₹0.50, meaning 500 coins would be worth ₹250. Adjust this based on your platform\'s pricing strategy.',
+        inrToCoinRatio: {
+          value: config.inrToCoinRatio,
+          label: 'INR to Coin Ratio',
+          description: 'This setting controls how many coins equal ₹1 when calculating withdrawal amounts. For example, if set to 1, then 1 coin equals ₹1, so 500 coins will be worth ₹500. If set to 2, then 2 coins equal ₹1, meaning 500 coins would be worth ₹250. A higher value means telecallers need more coins to earn the same amount of money.',
         },
         minWithdrawalCoins: {
           value: config.minWithdrawalCoins,

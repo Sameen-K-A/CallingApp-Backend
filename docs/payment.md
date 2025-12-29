@@ -428,7 +428,7 @@ POST /payment/withdraw
 | --- | --- | --- |
 | transactionId | string | Withdrawal transaction ID |
 | coins | number | Coins requested for withdrawal |
-| amount | number | Amount in INR (coins × conversion rate) |
+| amount | number | Amount in INR (coins ÷ INR to coin ratio) |
 | status | string | Always "PENDING" for new requests |
 | currentBalance | number | Remaining wallet balance after request |
 | bankDetails | object | Bank account details used for transfer |

@@ -2,7 +2,7 @@ import { Schema, model, Model } from 'mongoose';
 import { IAppConfigDocument } from '../types/config';
 
 const configSchema = new Schema<IAppConfigDocument>({
-  coinToInrRatio: {
+  inrToCoinRatio: {
     type: Number,
     required: true,
     default: 1,
