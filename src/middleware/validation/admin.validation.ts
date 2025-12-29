@@ -295,3 +295,30 @@ export const updateConfigSchema = Joi.object({
 }).min(1).messages({
   'object.min': 'At least one configuration field is required.',
 });
+
+// Withdrawal management validation
+export const withdrawalIdParamSchema = Joi.object({
+  id: Joi
+    .string()
+    .required()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .messages({
+      'string.pattern.base': 'Invalid Withdrawal ID.',
+      'any.required': 'Withdrawal ID is required.'
+    })
+});
+
+export const completeWithdrawalSchema = Joi.object({
+  transferReference: Joi
+    .string()
+    .trim()
+    .min(5)
+    .max(100)
+    .required()
+    .messages({
+      'string.empty': 'Transfer reference is required.',
+      'string.min': 'Transfer reference must be at least 5 characters.',
+      'string.max': 'Transfer reference cannot exceed 100 characters.',
+      'any.required': 'Transfer reference is required.'
+    })
+});

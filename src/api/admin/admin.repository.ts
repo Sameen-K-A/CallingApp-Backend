@@ -15,13 +15,14 @@ import {
   CreatePlanInput,
   UpdatePlanInput,
   UpdateConfigInput,
+  WithdrawalTransactionForProcess,
 } from './admin.types'
 import AdminModel from '../../models/admin.model'
 import UserModel from '../../models/user.model'
 import TransactionModel from '../../models/transaction.model'
 import ReportModel from '../../models/report.model'
 import { IAdmin } from '../../types/admin'
-import mongoose from 'mongoose'
+import mongoose, { ClientSession } from 'mongoose'
 import { IReport, IUserDocument } from '../../types/general'
 import CallModel from '../../models/call.model'
 import PlanModel from '../../models/plan.model'
@@ -316,13 +317,61 @@ export class AdminRepository implements IAdminRepository {
           gatewayPaymentId: { $cond: { if: { $eq: ['$type', 'RECHARGE'] }, then: '$gatewayPaymentId', else: '$$REMOVE' } },
 
           // WITHDRAWAL fields
-          payoutId: { $cond: { if: { $eq: ['$type', 'WITHDRAWAL'] }, then: '$payoutId', else: '$$REMOVE' } },
-          utr: { $cond: { if: { $eq: ['$type', 'WITHDRAWAL'] }, then: '$utr', else: '$$REMOVE' } }
+          bankDetails: { $cond: { if: { $eq: ['$type', 'WITHDRAWAL'] }, then: '$bankDetails', else: '$$REMOVE' } },
+          transferReference: { $cond: { if: { $eq: ['$type', 'WITHDRAWAL'] }, then: '$transferReference', else: '$$REMOVE' } },
+          processedAt: { $cond: { if: { $eq: ['$type', 'WITHDRAWAL'] }, then: '$processedAt', else: '$$REMOVE' } }
         }
       }
     ])
 
     return results[0] || null
+  };
+
+  public async findWithdrawalById(transactionId: string): Promise<WithdrawalTransactionForProcess | null> {
+    const transaction = await TransactionModel
+      .findOne({ _id: transactionId, type: 'WITHDRAWAL' })
+      .select('_id userId type coins amount status')
+      .lean();
+
+    if (!transaction) return null;
+
+    return {
+      _id: transaction._id.toString(),
+      userId: transaction.userId.toString(),
+      type: 'WITHDRAWAL',
+      coins: transaction.coins || 0,
+      amount: transaction.amount,
+      status: transaction.status
+    };
+  };
+
+  public async completeWithdrawal(transactionId: string, transferReference: string, session?: ClientSession): Promise<boolean> {
+    const result = await TransactionModel.findByIdAndUpdate(
+      transactionId,
+      { $set: { status: 'SUCCESS', transferReference: transferReference, processedAt: new Date() } },
+      { new: true, session }
+    );
+
+    return result !== null;
+  };
+
+  public async rejectWithdrawal(transactionId: string): Promise<boolean> {
+    const result = await TransactionModel.findByIdAndUpdate(
+      transactionId,
+      { $set: { status: 'REJECTED', processedAt: new Date() } },
+      { new: true }
+    );
+
+    return result !== null;
+  };
+
+  public async deductUserBalance(userId: string, coins: number, session?: ClientSession): Promise<number | null> {
+    const user = await UserModel
+      .findByIdAndUpdate(userId, { $inc: { 'wallet.balance': -coins } }, { new: true, session })
+      .select('wallet.balance')
+      .lean<{ wallet: { balance: number } }>();
+
+    return user ? user.wallet.balance : null;
   };
 
   // Fetches a paginated list of all user-submitted reports.

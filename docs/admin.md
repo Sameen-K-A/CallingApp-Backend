@@ -42,6 +42,8 @@ Admin endpoints for dashboard, user management, telecaller management, transacti
 | --- | --- | --- | --- |
 | GET | `/admin/transactions` | Get transactions by type | Yes (ADMIN) |
 | GET | `/admin/transactions/:id` | Get transaction details | Yes (ADMIN) |
+| POST | `/admin/withdrawals/:id/complete` | Complete withdrawal request | Yes (ADMIN) |
+| POST | `/admin/withdrawals/:id/reject` | Reject withdrawal request | Yes (ADMIN) |
 
 ### Report Management
 
@@ -805,8 +807,13 @@ GET `/admin/transactions/:id`
     "type": "WITHDRAWAL",
     "amount": 500,
     "status": "SUCCESS",
-    "payoutId": "pout_DEF456",
-    "utr": "123456789012",
+    "bankDetails": {
+      "accountNumber": "1234567890",
+      "ifscCode": "SBIN0001234",
+      "accountHolderName": "Jane Smith"
+    },
+    "transferReference": "NEFT1234567890",
+    "processedAt": "2024-01-18T12:30:00.000Z",
     "createdAt": "2024-01-18T12:00:00.000Z",
     "updatedAt": "2024-01-18T12:30:00.000Z"
   }
@@ -831,7 +838,188 @@ curl -X GET http://localhost:8000/admin/transactions/507f1f77bcf86cd799439061 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 13. Get Reports
+## � 13. Complete Withdrawal
+
+Complete a pending withdrawal request by processing the bank transfer and deducting coins from telecaller's wallet.
+
+### Complete Withdrawal Endpoint
+
+POST `/admin/withdrawals/:id/complete`
+
+### Complete Withdrawal Path Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| id | string | Yes | Withdrawal transaction ID |
+
+### Complete Withdrawal Headers
+
+| Header | Value | Required |
+| --- | --- | --- |
+| Cookie | authenticationToken={token} | Yes |
+| Content-Type | application/json | Yes |
+
+### Complete Withdrawal Request Body
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| transferReference | string | Yes | Bank transfer reference/ID (5-100 characters) |
+
+### Complete Withdrawal Request Example
+
+```json
+{
+  "transferReference": "NEFT1234567890"
+}
+```
+
+### Complete Withdrawal Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "Withdrawal completed successfully.",
+  "data": {
+    "_id": "507f1f77bcf86cd799439061",
+    "status": "SUCCESS",
+    "transferReference": "NEFT1234567890",
+    "processedAt": "2024-01-15T14:30:00.000Z",
+    "coinsDeducted": 500,
+    "newBalance": 250
+  }
+}
+```
+
+### Complete Withdrawal Response Fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| _id | string | Withdrawal transaction ID |
+| status | string | Always "SUCCESS" |
+| transferReference | string | Bank transfer reference provided |
+| processedAt | string | Timestamp when withdrawal was processed |
+| coinsDeducted | number | Number of coins deducted from wallet |
+| newBalance | number | Telecaller's remaining wallet balance |
+
+### Complete Withdrawal Error Responses
+
+#### Withdrawal Not Found (404)
+
+```json
+{
+  "success": false,
+  "message": "Withdrawal transaction not found."
+}
+```
+
+#### Withdrawal Already Processed (400)
+
+```json
+{
+  "success": false,
+  "message": "Cannot complete withdrawal. Current status is SUCCESS."
+}
+```
+
+#### Withdrawal Processing Failed (500)
+
+```json
+{
+  "success": false,
+  "message": "Failed to complete withdrawal. Please try again."
+}
+```
+
+### Complete Withdrawal Example - cURL
+
+```bash
+curl -X POST http://localhost:8000/admin/withdrawals/507f1f77bcf86cd799439061/complete \
+  -H "Content-Type: application/json" \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "transferReference": "NEFT1234567890"
+  }'
+```
+
+## 🚫 14. Reject Withdrawal
+
+Reject a pending withdrawal request without processing any payment.
+
+### Reject Withdrawal Endpoint
+
+POST `/admin/withdrawals/:id/reject`
+
+### Reject Withdrawal Path Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| id | string | Yes | Withdrawal transaction ID |
+
+### Reject Withdrawal Headers
+
+| Header | Value | Required |
+| --- | --- | --- |
+| Cookie | authenticationToken={token} | Yes |
+
+### Reject Withdrawal Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "Withdrawal request rejected.",
+  "data": {
+    "_id": "507f1f77bcf86cd799439061",
+    "status": "REJECTED",
+    "processedAt": "2024-01-15T14:30:00.000Z"
+  }
+}
+```
+
+### Reject Withdrawal Response Fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| _id | string | Withdrawal transaction ID |
+| status | string | Always "REJECTED" |
+| processedAt | string | Timestamp when withdrawal was rejected |
+
+### Reject Withdrawal Error Responses
+
+#### Reject withdrawal, Withdrawal Not Found (404)
+
+```json
+{
+  "success": false,
+  "message": "Withdrawal transaction not found."
+}
+```
+
+#### Reject withdrawal, Withdrawal Already Processed (400)
+
+```json
+{
+  "success": false,
+  "message": "Cannot reject withdrawal. Current status is SUCCESS."
+}
+```
+
+#### Withdrawal Rejection Failed (500)
+
+```json
+{
+  "success": false,
+  "message": "Failed to reject withdrawal. Please try again."
+}
+```
+
+### Reject Withdrawal Example - cURL
+
+```bash
+curl -X POST http://localhost:8000/admin/withdrawals/507f1f77bcf86cd799439061/reject \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## 📝 15. Get Reports
 
 Get paginated list of all user reports.
 
@@ -885,7 +1073,7 @@ curl -X GET "http://localhost:8000/admin/reports?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 14. Get Report Details
+## 📝 16. Get Report Details
 
 Get detailed information about a specific report including call details.
 
@@ -960,7 +1148,7 @@ curl -X GET http://localhost:8000/admin/reports/507f1f77bcf86cd799439071 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 15. Update Report Status
+## 📝 17. Update Report Status
 
 Update the status of a report with optional admin notes.
 
@@ -1031,7 +1219,7 @@ curl -X PATCH http://localhost:8000/admin/reports/507f1f77bcf86cd799439071/statu
   -d '{"status": "RESOLVED", "adminNotes": "Investigated the issue. Warning issued to the telecaller."}'
 ```
 
-## 💎 16. Get Plans
+## 💎 18. Get Plans
 
 Get paginated list of all recharge plans.
 
@@ -1092,7 +1280,7 @@ curl -X GET "http://localhost:8000/admin/plans?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 💎 17. Create Plan
+## 💎 19. Create Plan
 
 Create a new recharge plan.
 
@@ -1168,7 +1356,7 @@ curl -X POST http://localhost:8000/admin/plans \
   -d '{"amount": 299, "coins": 350, "discountPercentage": 15}'
 ```
 
-## 💎 18. Update Plan
+## 💎 20. Update Plan
 
 Update an existing recharge plan.
 
@@ -1248,7 +1436,7 @@ curl -X PUT http://localhost:8000/admin/plans/507f1f77bcf86cd799439094 \
   -d '{"amount": 349, "discountPercentage": 20, "isActive": true}'
 ```
 
-## 💎 19. Delete Plan
+## 💎 21. Delete Plan
 
 Soft delete a recharge plan.
 
@@ -1343,12 +1531,13 @@ curl -X DELETE http://localhost:8000/admin/plans/507f1f77bcf86cd799439094 \
 | _id | string | Unique transaction ID |
 | type | string | RECHARGE or WITHDRAWAL |
 | amount | number | Transaction amount |
-| status | string | PENDING, SUCCESS, FAILED, or CANCELLED |
+| status | string | PENDING, SUCCESS, FAILED, CANCELLED, or REJECTED |
 | coins | number | Coins (RECHARGE only) |
 | gatewayOrderId | string | Payment gateway order ID (RECHARGE only) |
 | gatewayPaymentId | string | Payment gateway payment ID (RECHARGE only) |
-| payoutId | string | Payout ID (WITHDRAWAL only) |
-| utr | string | UTR number (WITHDRAWAL only) |
+| bankDetails | object | Bank account details (WITHDRAWAL only) |
+| transferReference | string | Bank transfer reference (WITHDRAWAL only) |
+| processedAt | string | Processing timestamp (WITHDRAWAL only) |
 | createdAt | string | Transaction timestamp |
 | updatedAt | string | Last update timestamp |
 
@@ -1386,7 +1575,7 @@ Application configuration management endpoints for admin panel settings.
 
 ---
 
-## 📖 20. Get Configuration
+## 📖 22. Get Configuration
 
 Retrieve current application configuration settings.
 
@@ -1452,7 +1641,7 @@ curl -X GET \
 
 ---
 
-## 📝 21. Update Configuration
+## 📝 23. Update Configuration
 
 Update application configuration settings.
 

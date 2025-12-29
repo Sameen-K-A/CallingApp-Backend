@@ -44,12 +44,7 @@ const transactionSchema = new Schema<ITransaction>({
   },
 
   // For WITHDRAWAL
-  payoutId: {
-    type: String,
-    index: true,
-    sparse: true
-  },
-  utr: {
+  transferReference: {
     type: String,
     index: true,
     sparse: true

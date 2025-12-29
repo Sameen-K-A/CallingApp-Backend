@@ -339,4 +339,41 @@ export class AdminController extends BaseController {
     }
   };
 
+  // ============================================
+  // Withdrawal Management
+  // ============================================
+
+  public completeWithdrawal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { transferReference } = req.body;
+
+      const result = await this.adminService.completeWithdrawal(id, { transferReference });
+
+      res.status(200).json({
+        success: true,
+        message: 'Withdrawal completed successfully.',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public rejectWithdrawal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      const result = await this.adminService.rejectWithdrawal(id);
+
+      res.status(200).json({
+        success: true,
+        message: 'Withdrawal request rejected.',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
 };

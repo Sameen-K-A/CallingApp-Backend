@@ -16,13 +16,17 @@ import {
   CreatePlanInput,
   UpdatePlanInput,
   ConfigResponse,
-  UpdateConfigInput
+  UpdateConfigInput,
+  CompleteWithdrawalInput,
+  CompleteWithdrawalResponse,
+  RejectWithdrawalResponse
 } from './admin.types'
 import { createToken } from '../../utils/jwt'
 import { OAuth2Client } from 'google-auth-library'
 import { ApiError } from '../../middleware/errors/ApiError'
 import { isTelecaller } from '../../utils/guards';
 import { IReport } from '../../types/general';
+import mongoose from 'mongoose';
 
 export class AdminService implements IAdminService {
   private googleClient: OAuth2Client
@@ -378,6 +382,92 @@ export class AdminService implements IAdminService {
   public async updateConfig(data: UpdateConfigInput): Promise<ConfigResponse> {
     await this.adminRepository.updateConfig(data);
     return this.getConfig();
+  };
+
+  // ============================================
+  // Withdrawal Management
+  // ============================================
+  public async completeWithdrawal(transactionId: string, input: CompleteWithdrawalInput): Promise<CompleteWithdrawalResponse> {
+    // Find withdrawal transaction
+    const withdrawal = await this.adminRepository.findWithdrawalById(transactionId);
+
+    if (!withdrawal) {
+      throw new ApiError(404, 'Withdrawal transaction not found.');
+    }
+    if (withdrawal.status !== 'PENDING') {
+      throw new ApiError(400, `Cannot complete withdrawal. Current status is ${withdrawal.status}.`);
+    }
+
+    // Start MongoDB transaction for atomic operation
+    const session = await mongoose.startSession();
+
+    try {
+      session.startTransaction();
+
+      // Deduct coins from telecaller wallet
+      const newBalance = await this.adminRepository.deductUserBalance(
+        withdrawal.userId,
+        withdrawal.coins,
+        session
+      );
+
+      if (newBalance === null) {
+        throw new Error('Failed to deduct balance from user wallet.');
+      }
+
+      // Update transaction status
+      const updated = await this.adminRepository.completeWithdrawal(
+        transactionId,
+        input.transferReference,
+        session
+      );
+
+      if (!updated) {
+        throw new Error('Failed to update withdrawal status.');
+      }
+
+      await session.commitTransaction();
+
+      return {
+        _id: transactionId,
+        status: 'SUCCESS',
+        transferReference: input.transferReference,
+        processedAt: new Date(),
+        coinsDeducted: withdrawal.coins,
+        newBalance: newBalance
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      console.error('Complete withdrawal failed:', error);
+      throw new ApiError(500, 'Failed to complete withdrawal. Please try again.');
+    } finally {
+      session.endSession();
+    }
+  };
+
+  public async rejectWithdrawal(transactionId: string): Promise<RejectWithdrawalResponse> {
+    // Find withdrawal transaction
+    const withdrawal = await this.adminRepository.findWithdrawalById(transactionId);
+
+    if (!withdrawal) {
+      throw new ApiError(404, 'Withdrawal transaction not found.');
+    }
+    if (withdrawal.status !== 'PENDING') {
+      throw new ApiError(400, `Cannot reject withdrawal. Current status is ${withdrawal.status}.`);
+    }
+
+    // Update transaction status
+    const updated = await this.adminRepository.rejectWithdrawal(transactionId);
+
+    if (!updated) {
+      throw new ApiError(500, 'Failed to reject withdrawal. Please try again.');
+    }
+
+    return {
+      _id: transactionId,
+      status: 'REJECTED',
+      processedAt: new Date()
+    };
   };
 
 };

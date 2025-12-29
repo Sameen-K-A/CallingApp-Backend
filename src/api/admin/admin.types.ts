@@ -1,6 +1,7 @@
 import { IAdmin } from '../../types/admin'
-import { IUserDocument, IReport } from '../../types/general'
+import { IUserDocument, IReport, IBankDetails } from '../../types/general'
 import { IAppConfig, IAppConfigDocument, ConfigGroupedResponse } from '../../types/config';
+import { ClientSession } from 'mongoose';
 
 // ============================================
 // DTOs (Data Transfer Objects) for API Responses
@@ -30,7 +31,7 @@ export type TransactionListResponse = {
   _id: string
   type: 'RECHARGE' | 'WITHDRAWAL'
   amount: number
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REJECTED'
   createdAt: Date
   user: {
     name: string | null
@@ -42,7 +43,7 @@ export type TransactionDetailsResponse = {
   _id: string
   type: 'RECHARGE' | 'WITHDRAWAL'
   amount: number
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REJECTED'
   createdAt: Date
   updatedAt: Date
   user: {
@@ -56,8 +57,41 @@ export type TransactionDetailsResponse = {
   gatewayOrderId?: string
   gatewayPaymentId?: string
   // For WITHDRAWAL
-  payoutId?: string
-  utr?: string
+  bankDetails?: IBankDetails
+  transferReference?: string
+  processedAt?: Date
+}
+
+// ============================================
+// Withdrawal Management Types
+// ============================================
+
+export interface CompleteWithdrawalInput {
+  transferReference: string
+}
+
+export interface CompleteWithdrawalResponse {
+  _id: string
+  status: 'SUCCESS'
+  transferReference: string
+  processedAt: Date
+  coinsDeducted: number
+  newBalance: number
+}
+
+export interface RejectWithdrawalResponse {
+  _id: string
+  status: 'REJECTED'
+  processedAt: Date
+}
+
+export interface WithdrawalTransactionForProcess {
+  _id: string
+  userId: string
+  type: 'WITHDRAWAL'
+  coins: number
+  amount: number
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REJECTED'
 }
 
 // ============================================
@@ -282,6 +316,11 @@ export interface IAdminRepository {
   // Config Management
   getConfig(): Promise<IAppConfigDocument | null>
   updateConfig(data: UpdateConfigInput): Promise<IAppConfigDocument>
+  // Withdrawal Management
+  findWithdrawalById(transactionId: string): Promise<WithdrawalTransactionForProcess | null>
+  completeWithdrawal(transactionId: string, transferReference: string, session?: ClientSession): Promise<boolean>
+  rejectWithdrawal(transactionId: string): Promise<boolean>
+  deductUserBalance(userId: string, coins: number, session?: ClientSession): Promise<number | null>
 };
 
 export interface IAdminService {
@@ -308,4 +347,7 @@ export interface IAdminService {
   // Config Management
   getConfig(): Promise<ConfigResponse>
   updateConfig(data: UpdateConfigInput): Promise<ConfigResponse>
+  // Withdrawal Management
+  completeWithdrawal(transactionId: string, input: CompleteWithdrawalInput): Promise<CompleteWithdrawalResponse>
+  rejectWithdrawal(transactionId: string): Promise<RejectWithdrawalResponse>
 };

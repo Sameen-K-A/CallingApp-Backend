@@ -52,9 +52,8 @@ export interface ITransaction extends Document {
   gatewaySignature?: string
 
   // For WITHDRAWAL
-  payoutId?: string
-  utr?: string
   bankDetails?: IBankDetails
+  transferReference?: string
   processedAt?: Date
 };
 

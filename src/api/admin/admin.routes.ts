@@ -17,7 +17,9 @@ import {
   planIdParamSchema,
   createPlanSchema,
   updatePlanSchema,
-  updateConfigSchema
+  updateConfigSchema,
+  withdrawalIdParamSchema,
+  completeWithdrawalSchema
 } from '../../middleware/validation/admin.validation';
 import { authenticate } from '../../utils/jwt';
 
@@ -47,6 +49,8 @@ router.patch('/telecallers/:id/reject', authenticate('ADMIN'), validateParams(te
 //Transaction routes
 router.get('/transactions', authenticate('ADMIN'), validateQuery(transactionFilterSchema), controller.getTransactions);
 router.get('/transactions/:id', authenticate('ADMIN'), validateParams(transactionIdParamSchema), controller.getTransactionDetails);
+router.post('/withdrawals/:id/complete', authenticate('ADMIN'), validateParams(withdrawalIdParamSchema), validateBody(completeWithdrawalSchema), controller.completeWithdrawal);
+router.post('/withdrawals/:id/reject', authenticate('ADMIN'), validateParams(withdrawalIdParamSchema), controller.rejectWithdrawal);
 
 // Reports management
 router.get('/reports', authenticate('ADMIN'), validateQuery(paginationSchema), controller.getReports);
