@@ -5,8 +5,7 @@ import { getSocketId } from './presence.service';
 import { getIOInstance } from '..';
 import { destroyLiveKitRoom } from '../../services/livekit.service';
 import { generateLiveKitToken, LiveKitCredentials } from '../../services/livekit.service';
-import { IUserDocument } from '../../types/general.d';
-import { isTelecaller } from '../../utils/guards';
+import { isLeanTelecaller } from '../../utils/guards';
 
 // Call timer duration in milliseconds
 const CALL_TIMER_DURATION_MS = 30 * 1000;
@@ -237,14 +236,14 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
       return createErrorResult('This person is no longer available for calls.');
     };
 
-    // Cast through unknown for lean() result
-    const telecaller = telecallerDoc as unknown as IUserDocument;
-    if (!isTelecaller(telecaller)) {
+    // Use lean type guard for proper type narrowing
+    if (!isLeanTelecaller(telecallerDoc)) {
+      console.warn(`⚠️ initiateCall: Invalid telecaller data - telecallerId: ${telecallerId}`);
       return createErrorResult('This person is no longer available for calls.');
     }
 
-    const telecallerName = telecaller.name || 'This person';
-    const telecallerPresence = telecaller.telecallerProfile.presence;
+    const telecallerName = telecallerDoc.name || 'This person';
+    const telecallerPresence = telecallerDoc.telecallerProfile.presence;
 
     if (telecallerPresence === 'OFFLINE') {
       return createErrorResult(`${telecallerName} is currently offline. Please try again later.`);
@@ -294,8 +293,8 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
       roomName: roomName,
       telecaller: {
         _id: telecallerId,
-        name: telecaller.name || 'Unknown',
-        profile: telecaller.profile || null,
+        name: telecallerDoc.name || 'Unknown',
+        profile: telecallerDoc.profile || null,
         socketId: telecallerSocketId
       },
       caller: {
