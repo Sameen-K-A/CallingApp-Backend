@@ -1,46 +1,54 @@
 # 👤 Users API
 
-User endpoints for profile management, favorites, and telecaller listings.
+> User endpoints for profile management, favorites, and telecaller listings.
 
 ---
 
-## 📋 Endpoints Overview
+## 📋 Quick Reference
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/users/me` | Get current user profile | Yes |
-| PATCH | `/users/complete-profile` | Complete profile setup | Yes |
-| PATCH | `/users/edit-profile` | Edit profile details | Yes |
-| GET | `/users/plans` | Get available recharge plans | Yes |
-| GET | `/users/favorites` | Get favorite telecallers | Yes |
-| POST | `/users/favorites/:telecallerId` | Add telecaller to favorites | Yes |
-| DELETE | `/users/favorites/:telecallerId` | Remove telecaller from favorites | Yes |
-| GET | `/users/telecallers` | Get online, on_call telecallers list with call charges | Yes |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/users/me` | Get current user profile |
+| `PATCH` | `/users/complete-profile` | Complete profile setup |
+| `PATCH` | `/users/edit-profile` | Edit profile details |
+| `GET` | `/users/plans` | Get available recharge plans |
+| `GET` | `/users/favorites` | Get favorite telecallers |
+| `POST` | `/users/favorites/:telecallerId` | Add telecaller to favorites |
+| `DELETE` | `/users/favorites/:telecallerId` | Remove telecaller from favorites |
+| `GET` | `/users/telecallers` | Get online telecallers with call charges |
+
+> **Note:** All endpoints require authentication via `Authorization: Bearer <token>` header.
 
 ---
 
-## 👤 1. Get My Profile
+## 👤 Get My Profile
 
-Get current authenticated user's profile details.
+Get the current authenticated user's profile details.
 
-### Get My Profile Endpoint
+```
+GET /users/me
+```
 
-GET `/users/me`
+### Request
 
-### Get My Profile Headers
+#### Headers
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
 
-### Get My Profile Success Responses
+### Response
 
-#### Get My Profile Regular User (200)
+#### ✅ Success `200 OK`
+
+---
+
+**👤 Regular User**
 
 ```json
 {
   "success": true,
-  "message": "Profile details collected successfully.",
+  "message": "collect profile details successfully.",
   "data": {
     "_id": "507f1f77bcf86cd799439011",
     "phone": "9876543210",
@@ -59,12 +67,14 @@ GET `/users/me`
 }
 ```
 
-#### Get My Profile Telecaller (200)
+---
+
+**📞 Telecaller**
 
 ```json
 {
   "success": true,
-  "message": "Profile details collected successfully.",
+  "message": "collect profile details successfully.",
   "data": {
     "_id": "507f1f77bcf86cd799439012",
     "phone": "9876543211",
@@ -88,83 +98,72 @@ GET `/users/me`
 }
 ```
 
-### Get My Profile Error Responses
+#### ❌ Errors
 
-#### Unauthorized (401)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `401` | Missing token | `"Authentication token is required."` |
+| `403` | Account suspended | `"Your account has been suspended. Please contact support."` |
+| `404` | User not found | `"User not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Authentication token is required."
-}
-```
-
-#### User Not Found (404)
-
-```json
-{
-  "success": false,
-  "message": "User not found."
-}
-```
-
-#### Account Suspended (403)
-
-```json
-{
-  "success": false,
-  "message": "Your account has been suspended. Please contact support."
-}
-```
-
-### Get My Profile Example - cURL
+### Example
 
 ```bash
 curl -X GET http://localhost:8000/users/me \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ✏️ 2. Complete Profile
+---
 
-Complete profile setup for new users. Can only be called once.
+## ✏️ Complete Profile
 
-### Complete Profile Endpoint
+Complete profile setup for new users.  
+**Can only be called once** - returns error if profile already completed.
 
-PATCH `/users/complete-profile`
+```
+PATCH /users/complete-profile
+```
 
-### Complete Profile Headers
+### Request
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+#### Headers
 
-### Complete Profile Request Body
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
+| `Content-Type` | `application/json` |
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| name | string | Yes | 3-50 characters |
-| dob | string | Yes | ISO date, must be 18+ years old |
-| gender | string | Yes | MALE, FEMALE, or OTHER |
-| language | string | Yes | Valid language code |
-| role | string | Yes | USER or TELECALLER |
-| about | string | Conditional | Required if role is TELECALLER, 50-500 characters |
+#### Body
 
-#### Valid Languages
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | `string` | ✅ Yes | 3-50 characters |
+| `dob` | `string` | ✅ Yes | ISO date format, must be 18+ years old |
+| `gender` | `string` | ✅ Yes | `MALE`, `FEMALE`, or `OTHER` |
+| `language` | `string` | ✅ Yes | Valid language code (see below) |
+| `role` | `string` | ✅ Yes | `USER` or `TELECALLER` |
+| `about` | `string` | Conditional | Required if `role` is `TELECALLER`, 50-500 characters |
 
-- english
-- hindi
-- tamil
-- telugu
-- kannada
-- malayalam
-- bengali
-- marathi
-- gujarati
-- punjabi
-- urdu
-- odia
+#### Supported Languages
 
-#### Request - Regular User
+| Code | Language |
+|------|----------|
+| `english` | English |
+| `hindi` | हिंदी |
+| `tamil` | தமிழ் |
+| `telugu` | తెలుగు |
+| `kannada` | ಕನ್ನಡ |
+| `malayalam` | മലയാളം |
+| `bengali` | বাংলা |
+| `marathi` | मराठी |
+| `gujarati` | ગુજરાતી |
+| `punjabi` | ਪੰਜਾਬੀ |
+| `urdu` | اردو |
+| `odia` | ଓଡ଼ିଆ |
+
+---
+
+**Request - Regular User**
 
 ```json
 {
@@ -176,7 +175,9 @@ PATCH `/users/complete-profile`
 }
 ```
 
-#### Request - Telecaller
+---
+
+**Request - Telecaller**
 
 ```json
 {
@@ -189,9 +190,13 @@ PATCH `/users/complete-profile`
 }
 ```
 
-### Complete Profile Success Responses
+### Response
 
-#### Complete Profile Regular User (200)
+#### ✅ Success `200 OK`
+
+---
+
+**👤 Regular User**
 
 ```json
 {
@@ -214,7 +219,9 @@ PATCH `/users/complete-profile`
 }
 ```
 
-#### Complete Profile Telecaller (200)
+---
+
+**📞 Telecaller** *(approval status will be PENDING)*
 
 ```json
 {
@@ -242,54 +249,17 @@ PATCH `/users/complete-profile`
 }
 ```
 
-### Complete Profile Error Responses
+#### ❌ Errors
 
-#### Complete Profile Validation Error (400)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Name too short | `"Name must be at least 3 characters."` |
+| `400` | Under 18 years old | `"You must be at least 18 years old."` |
+| `400` | Profile already completed | `"Profile has already been completed."` |
+| `400` | Gender restriction | `"Sorry, only female users can register as a telecaller."` |
+| `400` | Missing about for telecaller | `"About section is required for telecallers."` |
 
-```json
-{
-  "success": false,
-  "message": "Name must be at least 3 characters."
-}
-```
-
-#### Age Validation (400)
-
-```json
-{
-  "success": false,
-  "message": "You must be at least 18 years old."
-}
-```
-
-#### Profile Already Completed (400)
-
-```json
-{
-  "success": false,
-  "message": "Profile has already been completed."
-}
-```
-
-#### Telecaller Gender Restriction (400)
-
-```json
-{
-  "success": false,
-  "message": "Sorry, only female users can register as a telecaller."
-}
-```
-
-#### About Required for Telecaller (400)
-
-```json
-{
-  "success": false,
-  "message": "About section is required for telecallers."
-}
-```
-
-### Complete Profile Example - cURL
+### Example
 
 ```bash
 curl -X PATCH http://localhost:8000/users/complete-profile \
@@ -304,40 +274,37 @@ curl -X PATCH http://localhost:8000/users/complete-profile \
   }'
 ```
 
-## ✏️ 3. Edit Profile
+---
 
-Edit profile details for existing users. At least one field is required.
+## ✏️ Edit Profile
 
-### Edit Profile Endpoint
+Edit profile details for existing users.  
+**At least one field is required.**
 
-PATCH `/users/edit-profile`
+```
+PATCH /users/edit-profile
+```
 
-### Edit Profile Headers
+### Request
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+#### Headers
 
-### Edit Profile Request Body
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
+| `Content-Type` | `application/json` |
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| name | string | No | 3-50 characters, letters and spaces only |
-| language | string | No | Valid language code |
-| profile | string | No | Valid avatar (avatar-1 to avatar-8) or null |
+#### Body
 
-#### Valid Avatars
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | `string` | ❌ No | 3-50 characters, letters and spaces only |
+| `language` | `string` | ❌ No | Valid language code |
+| `profile` | `string` | ❌ No | Valid avatar or `null` to remove |
 
-- avatar-1
-- avatar-2
-- avatar-3
-- avatar-4
-- avatar-5
-- avatar-6
-- avatar-7
-- avatar-8
+#### Available Avatars
 
-#### Request Example
+`avatar-1`, `avatar-2`, `avatar-3`, `avatar-4`, `avatar-5`, `avatar-6`, `avatar-7`, `avatar-8`
 
 ```json
 {
@@ -347,7 +314,9 @@ PATCH `/users/edit-profile`
 }
 ```
 
-### Edit Profile Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -371,36 +340,15 @@ PATCH `/users/edit-profile`
 }
 ```
 
-### Edit Profile Error Responses
+#### ❌ Errors
 
-#### Validation Error (400)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Invalid name format | `"Name can only contain letters and spaces."` |
+| `400` | No fields provided | `"At least one field is required to update."` |
+| `400` | Profile not complete | `"Please complete your profile first."` |
 
-```json
-{
-  "success": false,
-  "message": "Name can only contain letters and spaces."
-}
-```
-
-#### No Fields Provided (400)
-
-```json
-{
-  "success": false,
-  "message": "At least one field is required to update."
-}
-```
-
-#### Profile Not Complete (400)
-
-```json
-{
-  "success": false,
-  "message": "Please complete your profile first."
-}
-```
-
-### Edit Profile Example - cURL
+### Example
 
 ```bash
 curl -X PATCH http://localhost:8000/users/edit-profile \
@@ -412,23 +360,28 @@ curl -X PATCH http://localhost:8000/users/edit-profile \
   }'
 ```
 
-## 💰 4. Get Plans
+---
 
-Get available recharge plans with first-time recharge indicator. This endpoint helps identify if the user is eligible for a first-time recharge offer.
+## 💰 Get Plans
 
-### Get Plans Endpoint
+Get available recharge plans with first-time recharge indicator.  
+**Use `isFirstRecharge` to show special first-time offers.**
 
-GET `/users/plans`
+```
+GET /users/plans
+```
 
-### Get Plans Headers
+### Request
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+#### Headers
 
-### Get Plans Success Responses
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
 
-#### Get Plans Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -463,73 +416,58 @@ GET `/users/plans`
 }
 ```
 
-#### Get Plans Empty Response (200)
-
-```json
-{
-  "success": true,
-  "message": "Plans fetched successfully.",
-  "data": {
-    "plans": [],
-    "isFirstRecharge": true
-  }
-}
-```
-
-### Get Plans Response Fields
+#### Response Fields
 
 | Field | Type | Description |
-| --- | --- | --- |
-| plans | array | List of available recharge plans |
-| plans[].\_id | string | Unique plan ID |
-| plans[].amount | number | Plan price in currency |
-| plans[].coins | number | Coins received with this plan |
-| plans[].discountPercentage | number | Discount percentage (0-99) |
-| plans[].createdAt | string | Plan creation timestamp |
-| isFirstRecharge | boolean | `true` if user has never made a successful recharge, `false` otherwise. Use this to show first-time recharge offers |
+|-------|------|-------------|
+| `plans` | `array` | List of available recharge plans |
+| `plans[]._id` | `string` | Unique plan ID |
+| `plans[].amount` | `number` | Plan price in currency |
+| `plans[].coins` | `number` | Coins received with this plan |
+| `plans[].discountPercentage` | `number` | Discount percentage (0-99) |
+| `isFirstRecharge` | `boolean` | `true` = user never recharged, `false` = has recharged before |
 
-### Get Plans Error Responses
+#### ❌ Errors
 
-#### Feature Not Available (403)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `403` | Telecaller access | `"This feature is only available for users."` |
 
-```json
-{
-  "success": false,
-  "message": "This feature is only available for users."
-}
-```
-
-### Get Plans Example - cURL
+### Example
 
 ```bash
 curl -X GET http://localhost:8000/users/plans \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ⭐ 5. Get Favorites
+---
+
+## ⭐ Get Favorites
 
 Get user's favorite telecallers list with pagination.
 
-### Get Favorites Endpoint
+```
+GET /users/favorites
+```
 
-GET `/users/favorites`
+### Request
 
-### Get Favorites Headers
+#### Headers
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
 
-### Get Favorites Query Parameters
+#### Query Parameters
 
-| Parameter | Type | Default | Rules |
-| --- | --- | --- | --- |
-| page | number | 1 | Minimum 1 |
-| limit | number | 15 | 1-50 |
+| Parameter | Type | Default | Validation |
+|-----------|------|---------|------------|
+| `page` | `number` | `1` | Minimum: 1 |
+| `limit` | `number` | `15` | Range: 1-50 |
 
-### Get Favorites Success Responses
+### Response
 
-#### Get Favorites Success Response (200)
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -559,60 +497,55 @@ GET `/users/favorites`
 }
 ```
 
-#### Get Favorites Empty Response (200)
+#### Response Fields
 
-```json
-{
-  "success": true,
-  "message": "Favorites fetched successfully.",
-  "data": {
-    "favorites": [],
-    "hasMore": false
-  }
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `favorites` | `array` | List of favorite telecallers |
+| `favorites[].presence` | `string` | `ONLINE`, `OFFLINE`, or `ON_CALL` |
+| `hasMore` | `boolean` | `true` if more pages available |
 
-### Get Favorites Error Responses
+#### ❌ Errors
 
-#### Feature Not Available (403)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `403` | Telecaller access | `"This feature is only available for users."` |
 
-```json
-{
-  "success": false,
-  "message": "This feature is only available for users."
-}
-```
-
-### Get Favorites Example - cURL
+### Example
 
 ```bash
 curl -X GET "http://localhost:8000/users/favorites?page=1&limit=10" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ➕ 6. Add to Favorites
+---
 
-Add a telecaller to favorites list. Maximum 50 favorites allowed.
+## ➕ Add to Favorites
 
-### Add to Favorites Endpoint
+Add a telecaller to favorites list.  
+**Maximum 50 favorites allowed per user.**
 
-POST `/users/favorites/:telecallerId`
+```
+POST /users/favorites/:telecallerId
+```
 
-### Add to Favorites Headers
+### Request
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+#### Headers
 
-### Add to Favorites Path Parameters
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
 
-| Parameter | Type | Required | Rules |
-| --- | --- | --- | --- |
-| telecallerId | string | Yes | Valid MongoDB ObjectId |
+#### Path Parameters
 
-### Add to Favorites Success Responses
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `telecallerId` | `string` | Telecaller's user ID (MongoDB ObjectId) |
 
-#### Add to Favorites Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -621,7 +554,7 @@ POST `/users/favorites/:telecallerId`
 }
 ```
 
-#### Add to Favorites Already Exists Response (200)
+**Already in favorites:**
 
 ```json
 {
@@ -630,90 +563,51 @@ POST `/users/favorites/:telecallerId`
 }
 ```
 
-### Add to Favorites Error Responses
+#### ❌ Errors
 
-#### Telecaller Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Self-add attempt | `"You cannot add yourself to favorites."` |
+| `400` | Max limit reached | `"You have reached the maximum limit of 50 favorites."` |
+| `400` | Telecaller suspended | `"This telecaller is no longer available."` |
+| `400` | Telecaller not approved | `"This telecaller is not available."` |
+| `403` | Telecaller access | `"This feature is only available for users."` |
+| `404` | Telecaller not found | `"Telecaller not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Telecaller not found."
-}
-```
-
-#### Telecaller Suspended (400)
-
-```json
-{
-  "success": false,
-  "message": "This telecaller is no longer available."
-}
-```
-
-#### Telecaller Not Approved (400)
-
-```json
-{
-  "success": false,
-  "message": "This telecaller is not available."
-}
-```
-
-#### Max Limit Reached (400)
-
-```json
-{
-  "success": false,
-  "message": "You have reached the maximum limit of 50 favorites."
-}
-```
-
-#### Self Add (400)
-
-```json
-{
-  "success": false,
-  "message": "You cannot add yourself to favorites."
-}
-```
-
-#### Get Favorites Feature Not Available (403)
-
-```json
-{
-  "success": false,
-  "message": "This feature is only available for users."
-}
-```
-
-### Add to Favorites Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/users/favorites/507f1f77bcf86cd799439031 \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ➖ 7. Remove from Favorites
+---
+
+## ➖ Remove from Favorites
 
 Remove a telecaller from favorites list.
 
-### Remove from Favorites Endpoint
+```
+DELETE /users/favorites/:telecallerId
+```
 
-DELETE `/users/favorites/:telecallerId`
+### Request
 
-### Remove from Favorites Headers
+#### Headers
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
 
-### Remove from Favorites Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Rules |
-| --- | --- | --- | --- |
-| telecallerId | string | Yes | Valid MongoDB ObjectId |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `telecallerId` | `string` | Telecaller's user ID (MongoDB ObjectId) |
 
-### Remove from Favorites Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -722,48 +616,48 @@ DELETE `/users/favorites/:telecallerId`
 }
 ```
 
-### Remove from Favorites Error Responses
+#### ❌ Errors
 
-#### Remove from Favorites Feature Not Available (403)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `403` | Telecaller access | `"This feature is only available for users."` |
 
-```json
-{
-  "success": false,
-  "message": "This feature is only available for users."
-}
-```
-
-### Remove from Favorites Example - cURL
+### Example
 
 ```bash
 curl -X DELETE http://localhost:8000/users/favorites/507f1f77bcf86cd799439031 \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📞 8. Get Telecallers
+---
 
-Get list of online/on-call telecallers with pagination and current call charges. Only shows APPROVED telecallers who are ONLINE or ON_CALL. Response includes audio and video call charges per second.
+## 📞 Get Telecallers
 
-### Get Telecallers Endpoint
+Get list of available telecallers for calling.  
+**Only shows APPROVED telecallers who are ONLINE or ON_CALL.**
 
-GET `/users/telecallers`
+```
+GET /users/telecallers
+```
 
-### Get Telecallers Headers
+### Request
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Authorization | Bearer {token} | Yes |
+#### Headers
 
-### Get Telecallers Query Parameters
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
 
-| Parameter | Type | Default | Rules |
-| --- | --- | --- | --- |
-| page | number | 1 | Minimum 1 |
-| limit | number | 15 | 1-50 |
+#### Query Parameters
 
-### Get Telecallers Success Responses
+| Parameter | Type | Default | Validation |
+|-----------|------|---------|------------|
+| `page` | `number` | `1` | Minimum: 1 |
+| `limit` | `number` | `15` | Range: 1-50 |
 
-#### Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -797,73 +691,72 @@ GET `/users/telecallers`
 }
 ```
 
-#### Empty Response (200)
+#### Response Fields
 
-```json
-{
-  "success": true,
-  "message": "Telecallers fetched successfully.",
-  "data": {
-    "data": [],
-    "hasMore": false,
-    "audioCallCharge": 2,
-    "videoCallCharge": 3
-  }
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `array` | List of telecaller objects |
+| `data[].presence` | `string` | `ONLINE` or `ON_CALL` |
+| `data[].isFavorite` | `boolean` | Whether user has favorited this telecaller |
+| `hasMore` | `boolean` | `true` if more pages available |
+| `audioCallCharge` | `number` | Coins charged per second for audio calls |
+| `videoCallCharge` | `number` | Coins charged per second for video calls |
 
-### Get Telecallers Example - cURL
+### Example
 
 ```bash
 curl -X GET "http://localhost:8000/users/telecallers?page=1&limit=15" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📊 Response Fields Reference
+---
+
+## 📊 Response Field Reference
 
 ### User Profile Fields
 
 | Field | Type | Nullable | Description |
-| --- | --- | --- | --- |
-| _id | string | No | Unique user ID |
-| phone | string | No | Phone number |
-| name | string | Yes | User's name |
-| dob | string | Yes | Date of birth (ISO format) |
-| gender | string | Yes | MALE, FEMALE, or OTHER |
-| profile | string | Yes | Avatar identifier |
-| language | string | Yes | Preferred language |
-| accountStatus | string | No | ACTIVE or SUSPENDED |
-| role | string | No | USER or TELECALLER |
-| wallet.balance | number | No | Current wallet balance |
-| createdAt | string | No | Account creation timestamp |
+|-------|------|----------|-------------|
+| `_id` | `string` | No | Unique user ID |
+| `phone` | `string` | No | Phone number |
+| `name` | `string` | **Yes** | User's name (`null` if profile not completed) |
+| `dob` | `string` | Yes | Date of birth (ISO format) |
+| `gender` | `string` | Yes | `MALE`, `FEMALE`, or `OTHER` |
+| `profile` | `string` | Yes | Avatar identifier (e.g., `avatar-1`) |
+| `language` | `string` | Yes | Preferred language code |
+| `accountStatus` | `string` | No | `ACTIVE` or `SUSPENDED` |
+| `role` | `string` | No | `USER` or `TELECALLER` |
+| `wallet.balance` | `number` | No | Current coin balance |
+| `createdAt` | `string` | No | Account creation timestamp (ISO 8601) |
 
-### Plan Fields
+### Telecaller Profile Fields
 
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Unique plan ID |
-| amount | number | Price in currency |
-| coins | number | Coins received |
-| discountPercentage | number | Discount percentage (0-99) |
-| createdAt | string | Plan creation timestamp |
-
-### Telecaller List Fields
+Only present when `role === "TELECALLER"`:
 
 | Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Telecaller's user ID |
-| name | string | Telecaller's name |
-| profile | string | Avatar identifier |
-| language | string | Preferred language |
-| about | string | Telecaller's bio |
-| presence | string | ONLINE, OFFLINE, or ON_CALL |
-| isFavorite | boolean | Whether user has favorited (only in telecallers list) |
+|-------|------|-------------|
+| `telecallerProfile.about` | `string` | Telecaller's bio/description |
+| `telecallerProfile.approvalStatus` | `string` | `PENDING`, `APPROVED`, or `REJECTED` |
+| `telecallerProfile.verificationNotes` | `string` | Admin verification notes |
 
-### Get Telecallers Response Structure
+### Plan Object Fields
 
 | Field | Type | Description |
-| --- | --- | --- |
-| data | array | Array of telecaller objects |
-| hasMore | boolean | Whether more results are available |
-| audioCallCharge | number | Coins charged per second for audio calls |
-| videoCallCharge | number | Coins charged per second for video calls |
+|-------|------|-------------|
+| `_id` | `string` | Unique plan ID |
+| `amount` | `number` | Price in currency |
+| `coins` | `number` | Coins received |
+| `discountPercentage` | `number` | Discount percentage (0-99) |
+| `createdAt` | `string` | Plan creation timestamp |
+
+### Telecaller List Item Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `_id` | `string` | Telecaller's user ID |
+| `name` | `string` | Telecaller's name |
+| `profile` | `string` | Avatar identifier |
+| `language` | `string` | Preferred language |
+| `about` | `string` | Telecaller's bio |
+| `presence` | `string` | `ONLINE`, `OFFLINE`, or `ON_CALL` |
+| `isFavorite` | `boolean` | Whether user has favorited (only in telecallers list) |

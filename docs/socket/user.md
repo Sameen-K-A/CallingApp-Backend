@@ -1,18 +1,12 @@
 # 🔌 User Socket Events
 
-Real-time socket events for user namespace.
+> Real-time socket events for the user namespace.
+
+---
 
 ## 📡 Connection
 
-### Namespace URL
-
-```text
-http://localhost:8000/user
-```
-
-### Authentication
-
-Send JWT token during connection:
+**Namespace:** `http://localhost:8000/user`
 
 ```javascript
 const socket = io('http://localhost:8000/user', {
@@ -22,140 +16,87 @@ const socket = io('http://localhost:8000/user', {
 });
 ```
 
-### Connection Requirements
+### Requirements
 
-| Requirement | Description |
-| --- | --- |
+| Requirement | Value |
+|-------------|-------|
 | Token | Valid JWT token |
-| Role | USER |
-| Account Status | ACTIVE |
+| Role | `USER` |
+| Account Status | `ACTIVE` |
 
 ### Connection Errors
 
-| Error | Description |
-| --- | --- |
-| Authentication token required | No token provided |
-| Invalid or expired token | Token is invalid or expired |
-| Access denied | User role is not USER |
-| Account suspended. Please contact support. | Account is blocked |
-| Too many connection attempts. Please wait. | Rate limited |
+| Error | Cause |
+|-------|-------|
+| `Authentication token required` | No token provided |
+| `Invalid or expired token` | Token validation failed |
+| `Access denied` | User role is not `USER` |
+| `Account suspended` | Account is blocked |
+| `Too many connection attempts` | Rate limited |
+
+---
 
 ## 📋 Events Overview
 
 ### Client → Server (Emit)
 
 | Event | Description |
-| --- | --- |
-| call:initiate | Start a call to telecaller |
-| call:cancel | Cancel outgoing call (while ringing) |
-| call:end | End active call |
+|-------|-------------|
+| `call:initiate` | Start a call to telecaller |
+| `call:cancel` | Cancel outgoing call (while ringing) |
+| `call:end` | End active call |
 
 ### Server → Client (Listen)
 
 | Event | Description |
-| --- | --- |
-| telecaller:presence-changed | Telecaller online status changed |
-| call:ringing | Call is ringing on telecaller side |
-| call:accepted | Telecaller accepted the call |
-| call:rejected | Telecaller rejected the call |
-| call:missed | Call was not answered (30s timeout) |
-| call:ended | Call ended by telecaller |
-| call:error | Call-related error |
-| error | General error |
+|-------|-------------|
+| `telecaller:presence-changed` | Telecaller online status changed |
+| `call:ringing` | Call is ringing on telecaller side |
+| `call:accepted` | Telecaller accepted the call |
+| `call:rejected` | Telecaller rejected the call |
+| `call:missed` | Call not answered (30s timeout) |
+| `call:ended` | Call ended by telecaller |
+| `call:error` | Call-related error |
+| `error` | General error |
 
-## 📞 Call Flow Diagram
+---
 
-### Successful Call Flow
+## 📞 Call Flows
 
-```text
+### ✅ Successful Call
+
+```
 User                        Server                      Telecaller
-  |                            |                            |
-  |  call:initiate             |                            |
-  |  {telecallerId, callType}  |                            |
-  |--------------------------->|                            |
-  |                            |  call:incoming             |
-  |                            |  {callId, callType, caller}|
-  |                            |--------------------------->|
-  |  call:ringing              |                            |
-  |  {callId, telecaller}      |                            |
-  |<---------------------------|                            |
-  |                            |                            |
-  |                            |  call:accept               |
-  |                            |  {callId}                  |
-  |                            |<---------------------------|
-  |  call:accepted             |                            |
-  |  {callId, livekit}         |  call:accepted             |
-  |<---------------------------|  {callId, callType,        |
-  |                            |   caller, livekit}         |
-  |                            |--------------------------->|
-  |                            |                            |
-  |        ⬇️ LiveKit Call Active ⬇️                         |
-  |                            |                            |
-  |  call:end                  |                            |
-  |  {callId}                  |                            |
-  |--------------------------->|                            |
-  |                            |  call:ended                |
-  |                            |  {callId}                  |
-  |                            |--------------------------->|
+  │                            │                            │
+  │  call:initiate             │                            │
+  │  {telecallerId, callType}  │                            │
+  │───────────────────────────>│                            │
+  │                            │  call:incoming             │
+  │                            │───────────────────────────>│
+  │  call:ringing              │                            │
+  │<───────────────────────────│                            │
+  │                            │  call:accept               │
+  │                            │<───────────────────────────│
+  │  call:accepted             │  call:accepted             │
+  │  {callId, livekit}         │  {callId, livekit}         │
+  │<───────────────────────────│───────────────────────────>│
+  │                            │                            │
+  │         ⬇️ LiveKit Call Active ⬇️                      │
+  │                            │                            │
+  │  call:end                  │                            │
+  │───────────────────────────>│  call:ended                │
+  │                            │───────────────────────────>│
 ```
 
-### Rejected Call Flow
+### ❌ Rejected / Cancelled / Missed
 
-```text
-User                        Server                      Telecaller
-  |                            |                            |
-  |  call:initiate             |                            |
-  |--------------------------->|                            |
-  |                            |  call:incoming             |
-  |                            |--------------------------->|
-  |  call:ringing              |                            |
-  |<---------------------------|                            |
-  |                            |  call:reject               |
-  |                            |  {callId}                  |
-  |                            |<---------------------------|
-  |  call:rejected             |                            |
-  |  {callId}                  |                            |
-  |<---------------------------|                            |
-```
+| Scenario | User Receives | Telecaller Receives |
+|----------|---------------|---------------------|
+| Telecaller rejects | `call:rejected` | - |
+| User cancels | - | `call:cancelled` |
+| 30s timeout | `call:missed` | `call:missed` |
 
-### Cancelled Call Flow
-
-```text
-User                        Server                      Telecaller
-  |                            |                            |
-  |  call:initiate             |                            |
-  |--------------------------->|                            |
-  |                            |  call:incoming             |
-  |                            |--------------------------->|
-  |  call:ringing              |                            |
-  |<---------------------------|                            |
-  |                            |                            |
-  |  call:cancel               |                            |
-  |  {callId}                  |                            |
-  |--------------------------->|                            |
-  |                            |  call:cancelled            |
-  |                            |  {callId}                  |
-  |                            |--------------------------->|
-```
-
-### Missed Call Flow (30s Timeout)
-
-```text
-User                        Server                      Telecaller
-  |                            |                            |
-  |  call:initiate             |                            |
-  |--------------------------->|                            |
-  |                            |  call:incoming             |
-  |                            |--------------------------->|
-  |  call:ringing              |                            |
-  |<---------------------------|                            |
-  |                            |                            |
-  |        ⏰ 30 seconds pass - No response ⏰               |
-  |                            |                            |
-  |  call:missed               |  call:missed               |
-  |  {callId}                  |  {callId}                  |
-  |<---------------------------|--------------------------->|
-```
+---
 
 ## 📤 Client → Server Events
 
@@ -163,48 +104,40 @@ User                        Server                      Telecaller
 
 Start a call to a telecaller.
 
-#### call:initiate Emit
-
 ```javascript
 socket.emit('call:initiate', {
   telecallerId: '507f1f77bcf86cd799439031',
-  callType: 'AUDIO'
+  callType: 'AUDIO'  // or 'VIDEO'
 });
 ```
 
-#### call:initiate Payload
-
 | Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| telecallerId | string | Yes | Telecaller's user ID |
-| callType | string | Yes | AUDIO or VIDEO |
+|-------|------|----------|-------------|
+| `telecallerId` | `string` | ✅ Yes | Telecaller's user ID |
+| `callType` | `string` | ✅ Yes | `AUDIO` or `VIDEO` |
 
-#### call:initiate Possible Responses
+**Possible Responses:**
 
 | Event | Condition |
-| --- | --- |
-| call:ringing | Call initiated successfully |
-| call:error | Failed to initiate call |
+|-------|-----------|
+| `call:ringing` | Call initiated successfully |
+| `call:error` | Failed to initiate |
 
-#### call:initiate Error Messages
+**Error Messages:**
 
 | Message | Cause |
-| --- | --- |
-| Invalid call request | Missing telecallerId or callType |
-| Invalid call type | callType is not AUDIO or VIDEO |
-| Too many call attempts. Please wait a moment. | Rate limited |
-| Your account is not available. Please contact support. | User account issue |
-| This person is no longer available for calls. | Telecaller not found or not approved |
-| {name} is currently offline. Please try again later. | Telecaller is offline |
-| {name} is busy on another call. Please try again later. | Telecaller is on another call |
-| {name} is currently unavailable. Please try again later. | Telecaller not connected to socket |
-| You already have an active call. | User has existing active call |
+|---------|-------|
+| `Invalid call request` | Missing required fields |
+| `Invalid call type` | Not `AUDIO` or `VIDEO` |
+| `{name} is currently offline` | Telecaller is offline |
+| `{name} is busy on another call` | Telecaller is on a call |
+| `You already have an active call` | User has existing call |
+
+---
 
 ### call:cancel
 
-Cancel an outgoing call while it's ringing.
-
-#### call:cancel Emit
+Cancel an outgoing call while ringing.
 
 ```javascript
 socket.emit('call:cancel', {
@@ -212,22 +145,17 @@ socket.emit('call:cancel', {
 });
 ```
 
-#### call:cancel Payload
+| Field | Type | Required |
+|-------|------|----------|
+| `callId` | `string` | ✅ Yes |
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| callId | string | Yes | Call ID |
+> **Note:** Can only cancel calls in `RINGING` status.
 
-#### call:cancel Notes
-
-- Can only cancel calls in RINGING status
-- Telecaller receives call:cancelled event
+---
 
 ### call:end
 
 End an active call.
-
-#### call:end Emit
 
 ```javascript
 socket.emit('call:end', {
@@ -235,17 +163,13 @@ socket.emit('call:end', {
 });
 ```
 
-#### call:end Payload
+| Field | Type | Required |
+|-------|------|----------|
+| `callId` | `string` | ✅ Yes |
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| callId | string | Yes | Call ID |
+> **Note:** Can only end calls in `ACCEPTED` status. Coins are calculated.
 
-#### call:end Notes
-
-- Can only end calls in ACCEPTED status
-- Telecaller receives call:ended event
-- Call duration and coins are calculated
+---
 
 ## 📥 Server → Client Events
 
@@ -253,33 +177,19 @@ socket.emit('call:end', {
 
 Telecaller's online status changed.
 
-#### telecaller:presence-changed Listen
-
 ```javascript
 socket.on('telecaller:presence-changed', (data) => {
-  console.log(`Telecaller ${data.telecallerId} is now ${data.presence}`);
+  console.log(`${data.telecallerId} is now ${data.presence}`);
 });
 ```
 
-#### telecaller:presence-changed Payload
-
 | Field | Type | Description |
-| --- | --- | --- |
-| telecallerId | string | Telecaller's user ID |
-| presence | string | ONLINE, OFFLINE, or ON_CALL |
-| telecaller | object/null | Telecaller details (on ONLINE) |
+|-------|------|-------------|
+| `telecallerId` | `string` | Telecaller's user ID |
+| `presence` | `string` | `ONLINE`, `OFFLINE`, or `ON_CALL` |
+| `telecaller` | `object\|null` | Details (only when `ONLINE`) |
 
-#### telecaller:presence-changed Telecaller Object (when presence is ONLINE)
-
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Telecaller's user ID |
-| name | string | Telecaller's name |
-| profile | string/null | Avatar identifier |
-| language | string | Preferred language |
-| about | string | Telecaller's bio |
-
-#### telecaller:presence-changed Example - ONLINE
+**Example - ONLINE:**
 
 ```json
 {
@@ -290,12 +200,12 @@ socket.on('telecaller:presence-changed', (data) => {
     "name": "Jane Smith",
     "profile": "avatar-3",
     "language": "hindi",
-    "about": "Experienced telecaller with 5 years of experience."
+    "about": "Experienced telecaller..."
   }
 }
 ```
 
-#### telecaller:presence-changed Example - OFFLINE
+**Example - OFFLINE/ON_CALL:**
 
 ```json
 {
@@ -305,85 +215,43 @@ socket.on('telecaller:presence-changed', (data) => {
 }
 ```
 
-#### telecaller:presence-changed Example - ON_CALL
-
-```json
-{
-  "telecallerId": "507f1f77bcf86cd799439031",
-  "presence": "ON_CALL",
-  "telecaller": null
-}
-```
+---
 
 ### call:ringing
 
 Call is ringing on telecaller's device.
 
-#### call:ringing Listen
-
 ```javascript
 socket.on('call:ringing', (data) => {
-  console.log(`Call ${data.callId} is ringing`);
+  showRingingUI(data.telecaller);
 });
 ```
 
-#### call:ringing Payload
-
 | Field | Type | Description |
-| --- | --- | --- |
-| callId | string | Call ID |
-| telecaller | object | Telecaller info |
+|-------|------|-------------|
+| `callId` | `string` | Call ID |
+| `telecaller._id` | `string` | Telecaller's ID |
+| `telecaller.name` | `string` | Telecaller's name |
+| `telecaller.profile` | `string\|null` | Avatar |
 
-#### call:ringing Telecaller Object
-
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Telecaller's user ID |
-| name | string | Telecaller's name |
-| profile | string/null | Avatar identifier |
-
-#### call:ringing Example
-
-```json
-{
-  "callId": "507f1f77bcf86cd799439081",
-  "telecaller": {
-    "_id": "507f1f77bcf86cd799439031",
-    "name": "Jane Smith",
-    "profile": "avatar-3"
-  }
-}
-```
+---
 
 ### call:accepted
 
-Telecaller accepted the call.
-
-#### call:accepted Listen
+Telecaller accepted the call. Contains LiveKit credentials.
 
 ```javascript
 socket.on('call:accepted', (data) => {
-  // Connect to LiveKit room
   connectToLiveKit(data.livekit);
 });
 ```
 
-#### call:accepted Payload
-
 | Field | Type | Description |
-| --- | --- | --- |
-| callId | string | Call ID |
-| livekit | object | LiveKit connection credentials |
-
-#### call:accepted LiveKit Object
-
-| Field | Type | Description |
-| --- | --- | --- |
-| token | string | LiveKit access token |
-| url | string | LiveKit server URL |
-| roomName | string | Room name (same as callId) |
-
-#### call:accepted Example
+|-------|------|-------------|
+| `callId` | `string` | Call ID |
+| `livekit.token` | `string` | LiveKit access token |
+| `livekit.url` | `string` | LiveKit server URL |
+| `livekit.roomName` | `string` | Room name (= callId) |
 
 ```json
 {
@@ -396,151 +264,102 @@ socket.on('call:accepted', (data) => {
 }
 ```
 
+---
+
 ### call:rejected
 
 Telecaller rejected the call.
 
-#### call:rejected Listen
-
 ```javascript
 socket.on('call:rejected', (data) => {
-  console.log(`Call ${data.callId} was rejected`);
+  showRejectedMessage();
 });
 ```
 
-#### call:rejected Payload
+| Field | Type |
+|-------|------|
+| `callId` | `string` |
 
-| Field | Type | Description |
-| --- | --- | --- |
-| callId | string | Call ID |
-
-#### call:rejected Example
-
-```json
-{
-  "callId": "507f1f77bcf86cd799439081"
-}
-```
+---
 
 ### call:missed
 
 Call was not answered within 30 seconds.
 
-#### call:missed Listen
-
 ```javascript
 socket.on('call:missed', (data) => {
-  console.log(`Call ${data.callId} was missed`);
+  showMissedCallUI();
 });
 ```
 
-#### call:missed Payload
+| Field | Type |
+|-------|------|
+| `callId` | `string` |
 
-| Field | Type | Description |
-| --- | --- | --- |
-| callId | string | Call ID |
-
-#### call:missed Example
-
-```json
-{
-  "callId": "507f1f77bcf86cd799439081"
-}
-```
+---
 
 ### call:ended
 
-Call was ended by telecaller.
-
-#### call:ended Listen
+Call ended by telecaller.
 
 ```javascript
 socket.on('call:ended', (data) => {
-  // Disconnect from LiveKit
   disconnectFromLiveKit();
 });
 ```
 
-#### call:ended Payload
+| Field | Type |
+|-------|------|
+| `callId` | `string` |
 
-| Field | Type | Description |
-| --- | --- | --- |
-| callId | string | Call ID |
-
-#### call:ended Example
-
-```json
-{
-  "callId": "507f1f77bcf86cd799439081"
-}
-```
+---
 
 ### call:error
 
 Call-related error occurred.
 
-#### call:error Listen
-
 ```javascript
 socket.on('call:error', (data) => {
-  console.error(`Call error: ${data.message}`);
+  showError(data.message);
 });
 ```
 
-#### call:error Payload
+| Field | Type |
+|-------|------|
+| `message` | `string` |
 
-| Field | Type | Description |
-| --- | --- | --- |
-| message | string | Error message |
-
-#### call:error Example
-
-```json
-{
-  "message": "This person is currently offline. Please try again later."
-}
-```
+---
 
 ### error
 
 General socket error.
 
-#### error Listen
-
 ```javascript
 socket.on('error', (data) => {
-  console.error(`Socket error: ${data.message}`);
+  console.error(data.message);
 });
 ```
 
-#### error Payload
+| Field | Type |
+|-------|------|
+| `message` | `string` |
 
-| Field | Type | Description |
-| --- | --- | --- |
-| message | string | Error message |
+---
 
-#### error Example
-
-```json
-{
-  "message": "An error occurred"
-}
-```
-
-## ⏱️ Rate Limiting
+## ⏱️ Rate Limits
 
 | Action | Limit |
-| --- | --- |
-| call:initiate | 5 per minute |
-| call:cancel | 20 per minute |
-| call:end | 20 per minute |
+|--------|-------|
+| `call:initiate` | 5 per minute |
+| `call:cancel` | 20 per minute |
+| `call:end` | 20 per minute |
 | Connection | 10 per minute per IP |
+
+---
 
 ## 🔌 Disconnect Handling
 
-When user disconnects unexpectedly:
-
 | Call Status | Action |
-| --- | --- |
-| RINGING | Call marked as MISSED, telecaller notified |
-| ACCEPTED | Call marked as COMPLETED, telecaller notified, LiveKit room destroyed |
+|-------------|--------|
+| `RINGING` | Call marked as `MISSED`, telecaller notified |
+| `ACCEPTED` | Call marked as `COMPLETED`, telecaller notified, LiveKit room destroyed |

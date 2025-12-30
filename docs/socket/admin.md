@@ -1,73 +1,68 @@
 # 🛡️ Admin Socket Events
 
-Real-time socket events for admin namespace.
+> Real-time socket events for the admin namespace.
 
 ---
 
 ## 📡 Connection
 
-### Namespace URL
-
-```text
-http://localhost:8000/admin
-```
-
-### Authentication
-
-Token is automatically read from authenticationToken cookie.
+**Namespace:** `http://localhost:8000/admin`
 
 ```javascript
 const socket = io('http://localhost:8000/admin', {
-  withCredentials: true // Important for cookies
+  withCredentials: true  // Required for cookie authentication
 });
 ```
 
-### Connection Requirements
+### Requirements
 
-| Requirement | Description |
-| --- | --- |
-| Cookie | Valid authenticationToken cookie |
-| Role | ADMIN |
+| Requirement | Value |
+|-------------|-------|
+| Cookie | Valid `authenticationToken` cookie |
+| Role | `ADMIN` |
 
 ### Connection Errors
 
-| Error | Description |
-| --- | --- |
-| Authentication token required | No cookie found |
-| Invalid or expired token | Token expired |
-| Access denied | Role is not ADMIN |
+| Error | Cause |
+|-------|-------|
+| `Authentication token required` | No cookie found |
+| `Invalid or expired token` | Token expired |
+| `Access denied` | Role is not `ADMIN` |
+
+---
 
 ## 📋 Events Overview
 
 ### Client → Server (Emit)
 
 | Event | Description |
-| --- | --- |
-| presence:request-counts | Request current online user/telecaller counts |
+|-------|-------------|
+| `presence:request-counts` | Request online user/telecaller counts |
 
 ### Server → Client (Listen)
 
 | Event | Description |
-| --- | --- |
-| presence:counts | Response with online counts |
-| error | General error |
+|-------|-------------|
+| `presence:counts` | Response with online counts |
+| `error` | General error |
+
+---
 
 ## 📤 Client → Server Events
 
 ### presence:request-counts
 
-Request the current number of online users and telecallers.
-
-#### presence:request-counts Emit
+Request current online statistics.
 
 ```javascript
 socket.emit('presence:request-counts');
 ```
 
-#### presence:request-counts Response
+**Response:**
+- ✅ Success → `presence:counts` event
+- ❌ Failure → `error` event
 
-- Success: Triggers `presence:counts` event
-- Failure: Triggers `error` event
+---
 
 ## 📥 Server → Client Events
 
@@ -75,23 +70,17 @@ socket.emit('presence:request-counts');
 
 Contains current online statistics.
 
-#### presence:counts Listen
-
 ```javascript
 socket.on('presence:counts', (data) => {
   console.log(`Users: ${data.onlineUsers}, Telecallers: ${data.onlineTelecallers}`);
 });
 ```
 
-#### presence:counts Payload
-
 | Field | Type | Description |
-| --- | --- | --- |
-| onlineUsers | number | Count of active user sockets |
-| onlineTelecallers | number | Count of active telecaller sockets |
-| timestamp | string | ISO timestamp of the snapshot |
-
-#### presence:counts Example
+|-------|------|-------------|
+| `onlineUsers` | `number` | Count of connected users |
+| `onlineTelecallers` | `number` | Count of connected telecallers |
+| `timestamp` | `string` | ISO timestamp of snapshot |
 
 ```json
 {
@@ -101,11 +90,11 @@ socket.on('presence:counts', (data) => {
 }
 ```
 
+---
+
 ### error
 
 General socket error.
-
-#### error Listen
 
 ```javascript
 socket.on('error', (data) => {
@@ -113,13 +102,9 @@ socket.on('error', (data) => {
 });
 ```
 
-#### error Payload
-
-| Field | Type | Description |
-| --- | --- | --- |
-| message | string | Error message |
-
-#### error Example
+| Field | Type |
+|-------|------|
+| `message` | `string` |
 
 ```json
 {

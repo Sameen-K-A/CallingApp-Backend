@@ -1,74 +1,74 @@
 # 🛡️ Admin API
 
-Admin endpoints for dashboard, user management, telecaller management, transactions, reports, and plans.
+> Admin endpoints for dashboard management, user/telecaller management, transactions, reports, plans, and configuration.
 
 ---
 
-## 📋 Endpoints Overview
+## 📋 Quick Reference
 
-### Authentication
+### 🔐 Authentication
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| POST | `/admin/auth/google` | Google OAuth login | No |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/admin/auth/google` | Google OAuth login |
 
-### Dashboard
+### 📊 Dashboard
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/admin/dashboard/stats` | Get dashboard statistics | Yes (ADMIN) |
-| GET | `/admin/dashboard/user-distribution` | Get user/telecaller distribution by period | Yes (ADMIN) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/dashboard/stats` | Get dashboard statistics |
+| `GET` | `/admin/dashboard/user-distribution` | Get user/telecaller distribution by period |
 
-### User Management
+### 👥 User Management
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/admin/users` | Get all users | Yes (ADMIN) |
-| GET | `/admin/users/:id` | Get user details | Yes (ADMIN) |
-| POST | `/admin/users/:id/block` | Block a user | Yes (ADMIN) |
-| POST | `/admin/users/:id/unblock` | Unblock a user | Yes (ADMIN) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/users` | Get all users (paginated) |
+| `GET` | `/admin/users/:id` | Get user details |
+| `POST` | `/admin/users/:id/block` | Block a user |
+| `POST` | `/admin/users/:id/unblock` | Unblock a user |
 
-### Telecaller Management
+### 📞 Telecaller Management
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/admin/telecallers` | Get telecallers by status | Yes (ADMIN) |
-| GET | `/admin/telecallers/:id` | Get telecaller details | Yes (ADMIN) |
-| PATCH | `/admin/telecallers/:id/approve` | Approve telecaller | Yes (ADMIN) |
-| PATCH | `/admin/telecallers/:id/reject` | Reject telecaller | Yes (ADMIN) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/telecallers` | Get telecallers by status |
+| `GET` | `/admin/telecallers/:id` | Get telecaller details |
+| `PATCH` | `/admin/telecallers/:id/approve` | Approve telecaller |
+| `PATCH` | `/admin/telecallers/:id/reject` | Reject telecaller |
 
-### Transaction Management
+### 💰 Transaction Management
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/admin/transactions` | Get transactions by type | Yes (ADMIN) |
-| GET | `/admin/transactions/:id` | Get transaction details | Yes (ADMIN) |
-| POST | `/admin/withdrawals/:id/complete` | Complete withdrawal request | Yes (ADMIN) |
-| POST | `/admin/withdrawals/:id/reject` | Reject withdrawal request | Yes (ADMIN) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/transactions` | Get transactions by type |
+| `GET` | `/admin/transactions/:id` | Get transaction details |
+| `POST` | `/admin/withdrawals/:id/complete` | Complete withdrawal |
+| `POST` | `/admin/withdrawals/:id/reject` | Reject withdrawal |
 
-### Report Management
+### 📝 Report Management
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/admin/reports` | Get all reports | Yes (ADMIN) |
-| GET | `/admin/reports/:id` | Get report details | Yes (ADMIN) |
-| PATCH | `/admin/reports/:id/status` | Update report status | Yes (ADMIN) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/reports` | Get all reports |
+| `GET` | `/admin/reports/:id` | Get report details |
+| `PATCH` | `/admin/reports/:id/status` | Update report status |
 
-### Plan Management
+### 💎 Plan Management
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/admin/plans` | Get all plans | Yes (ADMIN) |
-| POST | `/admin/plans` | Create new plan | Yes (ADMIN) |
-| PUT | `/admin/plans/:id` | Update plan | Yes (ADMIN) |
-| DELETE | `/admin/plans/:id` | Delete plan | Yes (ADMIN) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/plans` | Get all plans |
+| `POST` | `/admin/plans` | Create new plan |
+| `PUT` | `/admin/plans/:id` | Update plan |
+| `DELETE` | `/admin/plans/:id` | Delete plan |
 
-### Configuration Management
+### ⚙️ Configuration
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| GET | `/admin/config` | Get application configuration | Yes (ADMIN) |
-| PUT | `/admin/config` | Update application configuration | Yes (ADMIN) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/config` | Get app configuration |
+| `PUT` | `/admin/config` | Update app configuration |
 
 ---
 
@@ -77,22 +77,31 @@ Admin endpoints for dashboard, user management, telecaller management, transacti
 - Admin authentication uses **Google OAuth**
 - Token is stored in `authenticationToken` httpOnly cookie
 - Only whitelisted emails can access admin panel
+- Include cookie in all requests: `Cookie: authenticationToken=<token>`
 
 ---
 
-## 🔑 1. Google Login
+## 🔑 Google Login
 
 Authenticate admin using Google OAuth token.
 
-### Google Login Endpoint
+```
+POST /admin/auth/google
+```
 
-POST `/admin/auth/google`
+### Request
 
-### Google Login Request Body
+#### Headers
+
+| Header | Value |
+|--------|-------|
+| `Content-Type` | `application/json` |
+
+#### Body
 
 | Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| googleToken | string | Yes | Google OAuth ID token |
+|-------|------|----------|-------------|
+| `googleToken` | `string` | ✅ Yes | Google OAuth ID token |
 
 ```json
 {
@@ -100,9 +109,11 @@ POST `/admin/auth/google`
 }
 ```
 
-### Google Login Success Response (200)
+### Response
 
-Sets authenticationToken httpOnly cookie.
+#### ✅ Success `200 OK`
+
+Sets `authenticationToken` httpOnly cookie.
 
 ```json
 {
@@ -111,36 +122,15 @@ Sets authenticationToken httpOnly cookie.
 }
 ```
 
-### Google Login Error Responses
+#### ❌ Errors
 
-#### Invalid Token (401)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Invalid payload | `"Invalid Google token payload."` |
+| `401` | Invalid token | `"Invalid Google token."` |
+| `403` | Not authorized | `"Access denied. You are not an authorized admin."` |
 
-```json
-{
-  "success": false,
-  "message": "Invalid Google token."
-}
-```
-
-#### Invalid Payload (400)
-
-```json
-{
-  "success": false,
-  "message": "Invalid Google token payload."
-}
-```
-
-#### Not Authorized (403)
-
-```json
-{
-  "success": false,
-  "message": "Access denied. You are not an authorized admin."
-}
-```
-
-### Google Login Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/admin/auth/google \
@@ -148,15 +138,19 @@ curl -X POST http://localhost:8000/admin/auth/google \
   -d '{"googleToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."}'
 ```
 
-## 📊 2. Dashboard Stats
+---
+
+## 📊 Dashboard Stats
 
 Get overall platform statistics.
 
-### Dashboard Stats Endpoint
+```
+GET /admin/dashboard/stats
+```
 
-GET `/admin/dashboard/stats`
+### Response
 
-### Dashboard Stats Success Response (200)
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -187,37 +181,44 @@ GET `/admin/dashboard/stats`
 }
 ```
 
-### Dashboard Stats Example - cURL
+### Example
 
 ```bash
 curl -X GET http://localhost:8000/admin/dashboard/stats \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📈 3. User Distribution
+---
 
-Get count of users and telecallers registered within a specific time period. Useful for dashboard charts showing user/telecaller distribution.
+## 📈 User Distribution
 
-### User Distribution Endpoint
+Get count of users and telecallers by time period.  
+**Useful for dashboard charts.**
 
-GET `/admin/dashboard/user-distribution`
+```
+GET /admin/dashboard/user-distribution
+```
 
-### User Distribution Query Parameters
+### Request
 
-| Parameter | Type | Required | Values | Description |
-| --- | --- | --- | --- | --- |
-| period | string | Yes | `today`, `last7days`, `last30days`, `all` | Time period filter for counting registrations |
+#### Query Parameters
+
+| Parameter | Type | Required | Values |
+|-----------|------|----------|--------|
+| `period` | `string` | ✅ Yes | `today`, `last7days`, `last30days`, `all` |
 
 **Period Filter Logic:**
 
-| Period | Query Filter |
-| --- | --- |
+| Period | Filter Applied |
+|--------|----------------|
 | `today` | `createdAt >= start of today (00:00:00)` |
 | `last7days` | `createdAt >= 7 days ago` |
 | `last30days` | `createdAt >= 30 days ago` |
 | `all` | No date filter (total count) |
 
-### User Distribution Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -230,69 +231,42 @@ GET `/admin/dashboard/user-distribution`
 }
 ```
 
-### User Distribution Response Fields
+#### ❌ Errors
 
-| Field | Type | Description |
-| --- | --- | --- |
-| users | number | Count of users (role: USER) registered in the specified period |
-| telecallers | number | Count of telecallers (role: TELECALLER) registered in the specified period |
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Missing period | `"Period is required."` |
+| `400` | Invalid period | `"Period must be one of: today, last7days, last30days, all."` |
 
-### User Distribution Error Responses
-
-#### Missing Period Parameter (400)
-
-```json
-{
-  "success": false,
-  "message": "Period is required."
-}
-```
-
-#### Invalid Period Value (400)
-
-```json
-{
-  "success": false,
-  "message": "Period must be one of: today, last7days, last30days, all."
-}
-```
-
-### User Distribution Example - cURL
+### Example
 
 ```bash
-# Get distribution for today
-curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=today" \
-  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-# Get distribution for last 7 days
 curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=last7days" \
-  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-# Get distribution for last 30 days
-curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=last30days" \
-  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-# Get all-time distribution
-curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=all" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 👥 4. Get Users
+---
+
+## 👥 Get Users
 
 Get paginated list of all regular users.
 
-### Get Users Endpoint
+```
+GET /admin/users
+```
 
-GET `/admin/users`
+### Request
 
-### Get Users Query Parameters
+#### Query Parameters
 
-| Parameter | Type | Default | Rules |
-| --- | --- | --- | --- |
-| page | number | 1 | Minimum 1 |
-| limit | number | 20 | 1-100 |
+| Parameter | Type | Default | Validation |
+|-----------|------|---------|------------|
+| `page` | `number` | `1` | Minimum: 1 |
+| `limit` | `number` | `20` | Range: 1-100 |
 
-### Get Users Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -305,14 +279,6 @@ GET `/admin/users`
       "gender": "MALE",
       "accountStatus": "ACTIVE",
       "createdAt": "2024-01-15T10:30:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439012",
-      "phone": "9876543211",
-      "name": null,
-      "gender": null,
-      "accountStatus": "ACTIVE",
-      "createdAt": "2024-01-16T08:00:00.000Z"
     }
   ],
   "total": 150,
@@ -320,28 +286,34 @@ GET `/admin/users`
 }
 ```
 
-### Get Users Example - cURL
+### Example
 
 ```bash
 curl -X GET "http://localhost:8000/admin/users?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 👤 5. Get User Details
+---
+
+## 👤 Get User Details
 
 Get detailed information about a specific user.
 
-### Get User Details Endpoint
+```
+GET /admin/users/:id
+```
 
-GET `/admin/users/:id`
+### Request
 
-### Get User Details Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | User ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | User ID (MongoDB ObjectId) |
 
-### Get User Details Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -370,39 +342,40 @@ GET `/admin/users/:id`
 }
 ```
 
-### Get User Details Error Responses
+#### ❌ Errors
 
-#### Get User Details User Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `404` | User not found | `"User not found or user does not have a user role."` |
 
-```json
-{
-  "success": false,
-  "message": "User not found or user does not have a user role."
-}
-```
-
-### Get User Details Example - cURL
+### Example
 
 ```bash
 curl -X GET http://localhost:8000/admin/users/507f1f77bcf86cd799439011 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 🚫 6. Block User
+---
+
+## 🚫 Block User
 
 Block a user or approved telecaller.
 
-### Block User Endpoint
+```
+POST /admin/users/:id/block
+```
 
-POST `/admin/users/:id/block`
+### Request
 
-### Block User Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | User ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | User ID (MongoDB ObjectId) |
 
-### Block User Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -411,57 +384,42 @@ POST `/admin/users/:id/block`
 }
 ```
 
-### Block User Error Responses
+#### ❌ Errors
 
-#### Block User User Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `200` | Already blocked | `"User is already blocked."` |
+| `200` | Telecaller not approved | `"Only approved telecallers can be blocked."` |
+| `404` | User not found | `"User not found."` |
 
-```json
-{
-  "success": false,
-  "message": "User not found."
-}
-```
-
-#### Already Blocked (200)
-
-```json
-{
-  "success": false,
-  "message": "User is already blocked."
-}
-```
-
-#### Block User Telecaller Not Approved (200)
-
-```json
-{
-  "success": false,
-  "message": "Only approved telecallers can be blocked. This telecaller is not yet approved."
-}
-```
-
-### Block User Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/admin/users/507f1f77bcf86cd799439011/block \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ✅ 7. Unblock User
+---
+
+## ✅ Unblock User
 
 Unblock a previously blocked user or telecaller.
 
-### Unblock User Endpoint
+```
+POST /admin/users/:id/unblock
+```
 
-POST `/admin/users/:id/unblock`
+### Request
 
-### Unblock User Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | User ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | User ID (MongoDB ObjectId) |
 
-### Unblock User Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -470,59 +428,44 @@ POST `/admin/users/:id/unblock`
 }
 ```
 
-### Unblock User Error Responses
+#### ❌ Errors
 
-#### User Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `200` | Already active | `"User is already active."` |
+| `200` | Telecaller not approved | `"Only approved telecallers can be unblocked."` |
+| `404` | User not found | `"User not found."` |
 
-```json
-{
-  "success": false,
-  "message": "User not found."
-}
-```
-
-#### Already Active (200)
-
-```json
-{
-  "success": false,
-  "message": "User is already active."
-}
-```
-
-#### Telecaller Not Approved (200)
-
-```json
-{
-  "success": false,
-  "message": "Only approved telecallers can be unblocked. This telecaller is not approved."
-}
-```
-
-### Unblock User Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/admin/users/507f1f77bcf86cd799439011/unblock \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📞 8. Get Telecallers
+---
+
+## 📞 Get Telecallers
 
 Get paginated list of telecallers filtered by approval status.
 
-### Get Telecallers Endpoint
+```
+GET /admin/telecallers
+```
 
-GET `/admin/telecallers`
+### Request
 
-### Get Telecallers Query Parameters
+#### Query Parameters
 
-| Parameter | Type | Required | Rules |
-| --- | --- | --- | --- |
-| status | string | Yes | PENDING, APPROVED, or REJECTED |
-| page | number | No | Default: 1, Minimum: 1 |
-| limit | number | No | Default: 20, Range: 1-100 |
+| Parameter | Type | Required | Values |
+|-----------|------|----------|--------|
+| `status` | `string` | ✅ Yes | `PENDING`, `APPROVED`, `REJECTED` |
+| `page` | `number` | ❌ No | Default: 1 |
+| `limit` | `number` | ❌ No | Default: 20, Range: 1-100 |
 
-### Get Telecallers Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -534,13 +477,6 @@ GET `/admin/telecallers`
       "name": "Jane Smith",
       "accountStatus": "ACTIVE",
       "createdAt": "2024-01-10T08:00:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439032",
-      "phone": "9876543221",
-      "name": "Sara Jones",
-      "accountStatus": "ACTIVE",
-      "createdAt": "2024-01-11T09:00:00.000Z"
     }
   ],
   "total": 15,
@@ -548,28 +484,34 @@ GET `/admin/telecallers`
 }
 ```
 
-### Get Telecallers Example - cURL
+### Example
 
 ```bash
 curl -X GET "http://localhost:8000/admin/telecallers?status=PENDING&page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📞 9. Get Telecaller Details
+---
+
+## 📞 Get Telecaller Details
 
 Get detailed information about a specific telecaller.
 
-### Get Telecaller Details Endpoint
+```
+GET /admin/telecallers/:id
+```
 
-GET `/admin/telecallers/:id`
+### Request
 
-### Get Telecaller Details Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Telecaller ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Telecaller ID (MongoDB ObjectId) |
 
-### Get Telecaller Details Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -589,54 +531,46 @@ GET `/admin/telecallers/:id`
       "verificationNotes": "",
       "presence": "ONLINE"
     },
-    "complaints": [
-      {
-        "_id": "507f1f77bcf86cd799439052",
-        "reportedBy": "507f1f77bcf86cd799439011",
-        "reportedByName": "John Doe",
-        "description": "Call quality was poor",
-        "status": "RESOLVED",
-        "createdAt": "2024-01-17T12:00:00.000Z"
-      }
-    ],
+    "complaints": [...],
     "totalComplaints": 1
   }
 }
 ```
 
-### Get Telecaller Details Error Responses
+#### ❌ Errors
 
-#### Get Telecaller Details Telecaller Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `404` | Not found | `"Telecaller not found or user does not have a telecaller role."` |
 
-```json
-{
-  "success": false,
-  "message": "Telecaller not found or user does not have a telecaller role."
-}
-```
-
-### Get Telecaller Details Example - cURL
+### Example
 
 ```bash
 curl -X GET http://localhost:8000/admin/telecallers/507f1f77bcf86cd799439031 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ✅ 10. Approve Telecaller
+---
+
+## ✅ Approve Telecaller
 
 Approve a pending telecaller application.
 
-### Approve Telecaller Endpoint
+```
+PATCH /admin/telecallers/:id/approve
+```
 
-PATCH `/admin/telecallers/:id/approve`
+### Request
 
-### Approve Telecaller Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Telecaller ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Telecaller ID (MongoDB ObjectId) |
 
-### Approve Telecaller Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -645,79 +579,51 @@ PATCH `/admin/telecallers/:id/approve`
   "data": {
     "_id": "507f1f77bcf86cd799439031",
     "name": "Jane Smith",
-    "phone": "9876543220",
-    "dob": "1992-05-20",
-    "gender": "FEMALE",
-    "accountStatus": "ACTIVE",
-    "walletBalance": 0,
-    "createdAt": "2024-01-10T08:00:00.000Z",
     "telecallerProfile": {
-      "about": "Experienced telecaller with 5 years of experience.",
-      "approvalStatus": "APPROVED",
-      "verificationNotes": "",
-      "presence": "OFFLINE"
-    },
-    "complaints": [],
-    "totalComplaints": 0
+      "approvalStatus": "APPROVED"
+    }
   }
 }
 ```
 
-### Approve Telecaller Error Responses
+#### ❌ Errors
 
-#### Approve Telecaller Telecaller Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Already approved | `"This telecaller is already approved."` |
+| `400` | Was rejected | `"Cannot approve a rejected telecaller. They must re-apply first."` |
+| `404` | Not found | `"Telecaller application not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Telecaller application not found."
-}
-```
-
-#### Already Approved (400)
-
-```json
-{
-  "success": false,
-  "message": "This telecaller is already approved."
-}
-```
-
-#### Cannot Approve Rejected (400)
-
-```json
-{
-  "success": false,
-  "message": "Cannot approve a rejected telecaller. They must re-apply first."
-}
-```
-
-### Approve Telecaller Example - cURL
+### Example
 
 ```bash
 curl -X PATCH http://localhost:8000/admin/telecallers/507f1f77bcf86cd799439031/approve \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ❌ 11. Reject Telecaller
+---
+
+## ❌ Reject Telecaller
 
 Reject a telecaller application with a reason.
 
-### Reject Telecaller Endpoint
+```
+PATCH /admin/telecallers/:id/reject
+```
 
-PATCH `/admin/telecallers/:id/reject`
+### Request
 
-### Reject Telecaller Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Telecaller ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Telecaller ID (MongoDB ObjectId) |
 
-### Reject Telecaller Request Body
+#### Body
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| reason | string | Yes | 10-500 characters |
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `reason` | `string` | ✅ Yes | 10-500 characters |
 
 ```json
 {
@@ -725,7 +631,9 @@ PATCH `/admin/telecallers/:id/reject`
 }
 ```
 
-### Reject Telecaller Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -733,71 +641,53 @@ PATCH `/admin/telecallers/:id/reject`
   "message": "Telecaller rejected successfully.",
   "data": {
     "_id": "507f1f77bcf86cd799439031",
-    "name": "Jane Smith",
-    "phone": "9876543220",
-    "dob": "1992-05-20",
-    "gender": "FEMALE",
-    "accountStatus": "ACTIVE",
-    "walletBalance": 0,
-    "createdAt": "2024-01-10T08:00:00.000Z",
     "telecallerProfile": {
-      "about": "I want to be a telecaller.",
       "approvalStatus": "REJECTED",
-      "verificationNotes": "Profile information is incomplete. Please provide more details about your experience.",
-      "presence": "OFFLINE"
-    },
-    "complaints": [],
-    "totalComplaints": 0
+      "verificationNotes": "Profile information is incomplete..."
+    }
   }
 }
 ```
 
-### Reject Telecaller Error Responses
+#### ❌ Errors
 
-#### Telecaller Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Reason too short | `"Reason must be at least 10 characters long."` |
+| `404` | Not found | `"Telecaller application not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Telecaller application not found."
-}
-```
-
-#### Reason Too Short (400)
-
-```json
-{
-  "success": false,
-  "message": "Reason must be at least 10 characters long."
-}
-```
-
-### Reject Telecaller Example - cURL
+### Example
 
 ```bash
 curl -X PATCH http://localhost:8000/admin/telecallers/507f1f77bcf86cd799439031/reject \
   -H "Content-Type: application/json" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{"reason": "Profile information is incomplete. Please provide more details about your experience."}'
+  -d '{"reason": "Profile information is incomplete."}'
 ```
 
-## 💰 12. Get Transactions
+---
+
+## 💰 Get Transactions
 
 Get paginated list of transactions filtered by type.
 
-### Get Transactions Endpoint
+```
+GET /admin/transactions
+```
 
-GET `/admin/transactions`
+### Request
 
-### Get Transactions Query Parameters
+#### Query Parameters
 
-| Parameter | Type | Required | Rules |
-| --- | --- | --- | --- |
-| type | string | Yes | RECHARGE or WITHDRAWAL |
-| page | number | No | Default: 1, Minimum: 1 |
-| limit | number | No | Default: 20, Range: 1-100 |
+| Parameter | Type | Required | Values |
+|-----------|------|----------|--------|
+| `type` | `string` | ✅ Yes | `RECHARGE`, `WITHDRAWAL` |
+| `page` | `number` | ❌ No | Default: 1 |
+| `limit` | `number` | ❌ No | Default: 20, Range: 1-100 |
 
-### Get Transactions Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -805,23 +695,11 @@ GET `/admin/transactions`
   "transactions": [
     {
       "_id": "507f1f77bcf86cd799439061",
-      "user": {
-        "name": "John Doe"
-      },
+      "user": { "name": "John Doe" },
       "type": "RECHARGE",
       "amount": 499,
       "status": "SUCCESS",
       "createdAt": "2024-01-18T10:00:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439062",
-      "user": {
-        "name": "Mike Wilson"
-      },
-      "type": "RECHARGE",
-      "amount": 199,
-      "status": "PENDING",
-      "createdAt": "2024-01-18T11:00:00.000Z"
     }
   ],
   "total": 250,
@@ -829,28 +707,34 @@ GET `/admin/transactions`
 }
 ```
 
-### Get Transactions Example - cURL
+### Example
 
 ```bash
 curl -X GET "http://localhost:8000/admin/transactions?type=RECHARGE&page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 💰 13. Get Transaction Details
+---
+
+## 💰 Get Transaction Details
 
 Get detailed information about a specific transaction.
 
-### Get Transaction Details Endpoint
+```
+GET /admin/transactions/:id
+```
 
-GET `/admin/transactions/:id`
+### Request
 
-### Get Transaction Details Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Transaction ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Transaction ID (MongoDB ObjectId) |
 
-### Get Transaction Details Success Response - Recharge (200)
+### Response
+
+#### ✅ Success `200 OK` - Recharge
 
 ```json
 {
@@ -869,13 +753,12 @@ GET `/admin/transactions/:id`
     "coins": 600,
     "gatewayOrderId": "order_ABC123",
     "gatewayPaymentId": "pay_XYZ789",
-    "createdAt": "2024-01-18T10:00:00.000Z",
-    "updatedAt": "2024-01-18T10:01:00.000Z"
+    "createdAt": "2024-01-18T10:00:00.000Z"
   }
 }
 ```
 
-### Get Transaction Details Success Response - Withdrawal (200)
+#### ✅ Success `200 OK` - Withdrawal
 
 ```json
 {
@@ -897,59 +780,47 @@ GET `/admin/transactions/:id`
       "accountHolderName": "Jane Smith"
     },
     "transferReference": "NEFT1234567890",
-    "processedAt": "2024-01-18T12:30:00.000Z",
-    "createdAt": "2024-01-18T12:00:00.000Z",
-    "updatedAt": "2024-01-18T12:30:00.000Z"
+    "processedAt": "2024-01-18T12:30:00.000Z"
   }
 }
 ```
 
-### Get Transaction Details Error Responses
+#### ❌ Errors
 
-#### Transaction Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `404` | Not found | `"Transaction not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Transaction not found."
-}
-```
-
-### Get Transaction Details Example - cURL
+### Example
 
 ```bash
 curl -X GET http://localhost:8000/admin/transactions/507f1f77bcf86cd799439061 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 💳 14. Complete Withdrawal
+---
 
-Complete a pending withdrawal request by processing the bank transfer and deducting coins from telecaller's wallet.
+## 💳 Complete Withdrawal
 
-### Complete Withdrawal Endpoint
+Complete a pending withdrawal request.
 
-POST `/admin/withdrawals/:id/complete`
+```
+POST /admin/withdrawals/:id/complete
+```
 
-### Complete Withdrawal Path Parameters
+### Request
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Withdrawal transaction ID |
+#### Path Parameters
 
-### Complete Withdrawal Headers
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Withdrawal transaction ID |
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Cookie | authenticationToken={token} | Yes |
-| Content-Type | application/json | Yes |
+#### Body
 
-### Complete Withdrawal Request Body
-
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| transferReference | string | Yes | Bank transfer reference/ID (5-100 characters) |
-
-### Complete Withdrawal Request Example
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `transferReference` | `string` | ✅ Yes | 5-100 characters |
 
 ```json
 {
@@ -957,7 +828,9 @@ POST `/admin/withdrawals/:id/complete`
 }
 ```
 
-### Complete Withdrawal Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -974,78 +847,44 @@ POST `/admin/withdrawals/:id/complete`
 }
 ```
 
-### Complete Withdrawal Response Fields
+#### ❌ Errors
 
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Withdrawal transaction ID |
-| status | string | Always "SUCCESS" |
-| transferReference | string | Bank transfer reference provided |
-| processedAt | string | Timestamp when withdrawal was processed |
-| coinsDeducted | number | Number of coins deducted from wallet |
-| newBalance | number | Telecaller's remaining wallet balance |
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Already processed | `"Cannot complete withdrawal. Current status is SUCCESS."` |
+| `404` | Not found | `"Withdrawal transaction not found."` |
+| `500` | Processing failed | `"Failed to complete withdrawal. Please try again."` |
 
-### Complete Withdrawal Error Responses
-
-#### Withdrawal Not Found (404)
-
-```json
-{
-  "success": false,
-  "message": "Withdrawal transaction not found."
-}
-```
-
-#### Withdrawal Already Processed (400)
-
-```json
-{
-  "success": false,
-  "message": "Cannot complete withdrawal. Current status is SUCCESS."
-}
-```
-
-#### Withdrawal Processing Failed (500)
-
-```json
-{
-  "success": false,
-  "message": "Failed to complete withdrawal. Please try again."
-}
-```
-
-### Complete Withdrawal Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/admin/withdrawals/507f1f77bcf86cd799439061/complete \
   -H "Content-Type: application/json" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{
-    "transferReference": "NEFT1234567890"
-  }'
+  -d '{"transferReference": "NEFT1234567890"}'
 ```
 
-## 🚫 15. Reject Withdrawal
+---
 
-Reject a pending withdrawal request without processing any payment.
+## 🚫 Reject Withdrawal
 
-### Reject Withdrawal Endpoint
+Reject a pending withdrawal request.
 
-POST `/admin/withdrawals/:id/reject`
+```
+POST /admin/withdrawals/:id/reject
+```
 
-### Reject Withdrawal Path Parameters
+### Request
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Withdrawal transaction ID |
+#### Path Parameters
 
-### Reject Withdrawal Headers
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Withdrawal transaction ID |
 
-| Header | Value | Required |
-| --- | --- | --- |
-| Cookie | authenticationToken={token} | Yes |
+### Response
 
-### Reject Withdrawal Success Response (200)
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1059,66 +898,42 @@ POST `/admin/withdrawals/:id/reject`
 }
 ```
 
-### Reject Withdrawal Response Fields
+#### ❌ Errors
 
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Withdrawal transaction ID |
-| status | string | Always "REJECTED" |
-| processedAt | string | Timestamp when withdrawal was rejected |
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Already processed | `"Cannot reject withdrawal. Current status is SUCCESS."` |
+| `404` | Not found | `"Withdrawal transaction not found."` |
 
-### Reject Withdrawal Error Responses
-
-#### Reject withdrawal, Withdrawal Not Found (404)
-
-```json
-{
-  "success": false,
-  "message": "Withdrawal transaction not found."
-}
-```
-
-#### Reject withdrawal, Withdrawal Already Processed (400)
-
-```json
-{
-  "success": false,
-  "message": "Cannot reject withdrawal. Current status is SUCCESS."
-}
-```
-
-#### Withdrawal Rejection Failed (500)
-
-```json
-{
-  "success": false,
-  "message": "Failed to reject withdrawal. Please try again."
-}
-```
-
-### Reject Withdrawal Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/admin/withdrawals/507f1f77bcf86cd799439061/reject \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 16. Get Reports
+---
+
+## 📝 Get Reports
 
 Get paginated list of all user reports.
 
-### Get Reports Endpoint
+```
+GET /admin/reports
+```
 
-GET `/admin/reports`
+### Request
 
-### Get Reports Query Parameters
+#### Query Parameters
 
-| Parameter | Type | Default | Rules |
-| --- | --- | --- | --- |
-| page | number | 1 | Minimum 1 |
-| limit | number | 20 | 1-100 |
+| Parameter | Type | Default | Validation |
+|-----------|------|---------|------------|
+| `page` | `number` | `1` | Minimum: 1 |
+| `limit` | `number` | `20` | Range: 1-100 |
 
-### Get Reports Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1133,16 +948,6 @@ GET `/admin/reports`
       "description": "Inappropriate behavior during call",
       "status": "PENDING",
       "createdAt": "2024-01-18T14:00:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439072",
-      "reportedBy": "507f1f77bcf86cd799439012",
-      "reportedByName": "Mike Wilson",
-      "reportedAgainst": "507f1f77bcf86cd799439032",
-      "reportedAgainstName": "Sara Jones",
-      "description": "Call was disconnected multiple times",
-      "status": "RESOLVED",
-      "createdAt": "2024-01-17T10:00:00.000Z"
     }
   ],
   "total": 45,
@@ -1150,28 +955,34 @@ GET `/admin/reports`
 }
 ```
 
-### Get Reports Example - cURL
+### Example
 
 ```bash
 curl -X GET "http://localhost:8000/admin/reports?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 17. Get Report Details
+---
 
-Get detailed information about a specific report including call details.
+## 📝 Get Report Details
 
-### Get Report Details Endpoint
+Get detailed information about a specific report.
 
-GET `/admin/reports/:id`
+```
+GET /admin/reports/:id
+```
 
-### Get Report Details Path Parameters
+### Request
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Report ID (MongoDB ObjectId) |
+#### Path Parameters
 
-### Get Report Details Success Response (200)
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Report ID (MongoDB ObjectId) |
+
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1183,7 +994,6 @@ GET `/admin/reports/:id`
     "adminNotes": null,
     "resolvedAt": null,
     "createdAt": "2024-01-18T14:00:00.000Z",
-    "updatedAt": "2024-01-18T14:00:00.000Z",
     "reporter": {
       "_id": "507f1f77bcf86cd799439011",
       "name": "John Doe",
@@ -1201,57 +1011,51 @@ GET `/admin/reports/:id`
     "call": {
       "_id": "507f1f77bcf86cd799439081",
       "status": "COMPLETED",
-      "createdAt": "2024-01-18T13:30:00.000Z",
-      "acceptedAt": "2024-01-18T13:30:15.000Z",
-      "endedAt": "2024-01-18T13:45:00.000Z",
       "durationInSeconds": 885,
       "coinsSpent": 150,
-      "coinsEarned": 120,
-      "userFeedback": "Bad experience",
-      "telecallerFeedback": null
+      "coinsEarned": 120
     }
   }
 }
 ```
 
-### Get Report Details Error Responses
+#### ❌ Errors
 
-#### Get Report Details Report Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `404` | Not found | `"Report not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Report not found."
-}
-```
-
-### Get Report Details Example - cURL
+### Example
 
 ```bash
 curl -X GET http://localhost:8000/admin/reports/507f1f77bcf86cd799439071 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 18. Update Report Status
+---
+
+## 📝 Update Report Status
 
 Update the status of a report with optional admin notes.
 
-### Update Report Status Endpoint
+```
+PATCH /admin/reports/:id/status
+```
 
-PATCH `/admin/reports/:id/status`
+### Request
 
-### Update Report Status Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Report ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Report ID (MongoDB ObjectId) |
 
-### Update Report Status Request Body
+#### Body
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| status | string | Yes | PENDING, UNDER_REVIEW, RESOLVED, or DISMISSED |
-| adminNotes | string | No | Max 2000 characters |
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `status` | `string` | ✅ Yes | `PENDING`, `UNDER_REVIEW`, `RESOLVED`, `DISMISSED` |
+| `adminNotes` | `string` | ❌ No | Max 2000 characters |
 
 ```json
 {
@@ -1260,7 +1064,9 @@ PATCH `/admin/reports/:id/status`
 }
 ```
 
-### Update Report Status Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1274,51 +1080,44 @@ PATCH `/admin/reports/:id/status`
 }
 ```
 
-### Update Report Status Error Responses
+#### ❌ Errors
 
-#### Report Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Invalid status | `"Status must be one of: PENDING, UNDER_REVIEW, RESOLVED, DISMISSED."` |
+| `404` | Not found | `"Report not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Report not found."
-}
-```
-
-#### Invalid Status (400)
-
-```json
-{
-  "success": false,
-  "message": "Status must be one of: PENDING, UNDER_REVIEW, RESOLVED, DISMISSED."
-}
-```
-
-### Update Report Status Example - cURL
+### Example
 
 ```bash
 curl -X PATCH http://localhost:8000/admin/reports/507f1f77bcf86cd799439071/status \
   -H "Content-Type: application/json" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{"status": "RESOLVED", "adminNotes": "Investigated the issue. Warning issued to the telecaller."}'
+  -d '{"status": "RESOLVED", "adminNotes": "Issue resolved."}'
 ```
 
-## 💎 19. Get Plans
+---
+
+## 💎 Get Plans
 
 Get paginated list of all recharge plans.
 
-### Get Plans Endpoint
+```
+GET /admin/plans
+```
 
-GET `/admin/plans`
+### Request
 
-### Get Plans Query Parameters
+#### Query Parameters
 
-| Parameter | Type | Default | Rules |
-| --- | --- | --- | --- |
-| page | number | 1 | Minimum 1 |
-| limit | number | 20 | 1-100 |
+| Parameter | Type | Default | Validation |
+|-----------|------|---------|------------|
+| `page` | `number` | `1` | Minimum: 1 |
+| `limit` | `number` | `20` | Range: 1-100 |
 
-### Get Plans Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1330,26 +1129,7 @@ GET `/admin/plans`
       "coins": 100,
       "discountPercentage": 0,
       "isActive": true,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439092",
-      "amount": 199,
-      "coins": 220,
-      "discountPercentage": 10,
-      "isActive": true,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439093",
-      "amount": 499,
-      "coins": 600,
-      "discountPercentage": 20,
-      "isActive": false,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-15T00:00:00.000Z"
+      "createdAt": "2024-01-01T00:00:00.000Z"
     }
   ],
   "total": 3,
@@ -1357,28 +1137,32 @@ GET `/admin/plans`
 }
 ```
 
-### Get Plans Example - cURL
+### Example
 
 ```bash
 curl -X GET "http://localhost:8000/admin/plans?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 💎 20. Create Plan
+---
+
+## 💎 Create Plan
 
 Create a new recharge plan.
 
-### Create Plan Endpoint
+```
+POST /admin/plans
+```
 
-POST `/admin/plans`
+### Request
 
-### Create Plan Request Body
+#### Body
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| amount | number | Yes | Positive number |
-| coins | number | Yes | Positive integer |
-| discountPercentage | number | No | 0-99, Default: 0 |
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `amount` | `number` | ✅ Yes | Positive number |
+| `coins` | `number` | ✅ Yes | Positive integer |
+| `discountPercentage` | `number` | ❌ No | 0-99, Default: 0 |
 
 ```json
 {
@@ -1388,7 +1172,9 @@ POST `/admin/plans`
 }
 ```
 
-### Create Plan Success Response (201)
+### Response
+
+#### ✅ Success `201 Created`
 
 ```json
 {
@@ -1400,38 +1186,20 @@ POST `/admin/plans`
     "coins": 350,
     "discountPercentage": 15,
     "isActive": true,
-    "createdAt": "2024-01-19T10:00:00.000Z",
-    "updatedAt": "2024-01-19T10:00:00.000Z"
+    "createdAt": "2024-01-19T10:00:00.000Z"
   }
 }
 ```
 
-### Create Plan Error Responses
+#### ❌ Errors
 
-#### Validation Error (400)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Invalid amount | `"Amount must be a positive number."` |
+| `400` | Invalid coins | `"Coins must be a positive number."` |
+| `400` | Invalid discount | `"Discount percentage cannot exceed 99."` |
 
-```json
-{
-  "success": false,
-  "message": "Amount must be a positive number."
-}
-```
-
-```json
-{
-  "success": false,
-  "message": "Coins must be a positive number."
-}
-```
-
-```json
-{
-  "success": false,
-  "message": "Discount percentage cannot exceed 99."
-}
-```
-
-### Create Plan Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/admin/plans \
@@ -1440,30 +1208,33 @@ curl -X POST http://localhost:8000/admin/plans \
   -d '{"amount": 299, "coins": 350, "discountPercentage": 15}'
 ```
 
-## 💎 21. Update Plan
+---
 
-Update an existing recharge plan.
+## 💎 Update Plan
 
-### Update Plan Endpoint
+Update an existing recharge plan.  
+**At least one field is required.**
 
-PUT `/admin/plans/:id`
+```
+PUT /admin/plans/:id
+```
 
-### Update Plan Path Parameters
+### Request
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Plan ID (MongoDB ObjectId) |
+#### Path Parameters
 
-### Update Plan Request Body
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Plan ID (MongoDB ObjectId) |
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| amount | number | No | Positive number |
-| coins | number | No | Positive integer |
-| discountPercentage | number | No | 0-99 |
-| isActive | boolean | No | true or false |
+#### Body
 
-At least one field is required.
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `amount` | `number` | ❌ No | Positive number |
+| `coins` | `number` | ❌ No | Positive integer |
+| `discountPercentage` | `number` | ❌ No | 0-99 |
+| `isActive` | `boolean` | ❌ No | true or false |
 
 ```json
 {
@@ -1473,7 +1244,9 @@ At least one field is required.
 }
 ```
 
-### Update Plan Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1484,57 +1257,48 @@ At least one field is required.
     "amount": 349,
     "coins": 350,
     "discountPercentage": 20,
-    "isActive": true,
-    "createdAt": "2024-01-19T10:00:00.000Z",
-    "updatedAt": "2024-01-19T12:00:00.000Z"
+    "isActive": true
   }
 }
 ```
 
-### Update Plan Error Responses
+#### ❌ Errors
 
-#### Update Plan Plan Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | No fields provided | `"At least one field is required to update."` |
+| `404` | Not found | `"Plan not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Plan not found."
-}
-```
-
-#### No Fields Provided (400)
-
-```json
-{
-  "success": false,
-  "message": "At least one field is required to update."
-}
-```
-
-### Update Plan Example - cURL
+### Example
 
 ```bash
 curl -X PUT http://localhost:8000/admin/plans/507f1f77bcf86cd799439094 \
   -H "Content-Type: application/json" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{"amount": 349, "discountPercentage": 20, "isActive": true}'
+  -d '{"amount": 349, "isActive": true}'
 ```
 
-## 💎 22. Delete Plan
+---
+
+## 💎 Delete Plan
 
 Soft delete a recharge plan.
 
-### Delete Plan Endpoint
+```
+DELETE /admin/plans/:id
+```
 
-DELETE `/admin/plans/:id`
+### Request
 
-### Delete Plan Path Parameters
+#### Path Parameters
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| id | string | Yes | Plan ID (MongoDB ObjectId) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Plan ID (MongoDB ObjectId) |
 
-### Delete Plan Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1543,131 +1307,32 @@ DELETE `/admin/plans/:id`
 }
 ```
 
-### Delete Plan Error Responses
+#### ❌ Errors
 
-#### Plan Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `404` | Not found | `"Plan not found."` |
 
-```json
-{
-  "success": false,
-  "message": "Plan not found."
-}
-```
-
-### Delete Plan Example - cURL
+### Example
 
 ```bash
 curl -X DELETE http://localhost:8000/admin/plans/507f1f77bcf86cd799439094 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📊 Response Fields Reference
-
-### User List Fields
-
-| Field | Type | Nullable | Description |
-| --- | --- | --- | --- |
-| _id | string | No | Unique user ID |
-| phone | string | No | Phone number |
-| name | string | Yes | User's name |
-| gender | string | Yes | MALE, FEMALE, or OTHER |
-| accountStatus | string | No | ACTIVE or SUSPENDED |
-| createdAt | string | No | Account creation timestamp |
-
-### User Details Fields
-
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Unique user ID |
-| name | string | User's name |
-| phone | string | Phone number |
-| dob | string | Date of birth |
-| gender | string | MALE, FEMALE, or OTHER |
-| accountStatus | string | ACTIVE or SUSPENDED |
-| walletBalance | number | Current wallet balance |
-| createdAt | string | Account creation timestamp |
-| complaints | array | Last 5 complaints against user |
-| totalComplaints | number | Total complaints count |
-
-### Telecaller Details Fields
-
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Unique telecaller ID |
-| name | string | Telecaller's name |
-| phone | string | Phone number |
-| dob | string | Date of birth |
-| gender | string | FEMALE |
-| accountStatus | string | ACTIVE or SUSPENDED |
-| walletBalance | number | Current wallet balance |
-| createdAt | string | Account creation timestamp |
-| telecallerProfile.about | string | Telecaller's bio |
-| telecallerProfile.approvalStatus | string | PENDING, APPROVED, or REJECTED |
-| telecallerProfile.verificationNotes | string | Admin notes |
-| telecallerProfile.presence | string | ONLINE, OFFLINE, or ON_CALL |
-| complaints | array | Last 5 complaints (only for APPROVED) |
-| totalComplaints | number | Total complaints count |
-
-### Transaction Fields
-
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Unique transaction ID |
-| type | string | RECHARGE or WITHDRAWAL |
-| amount | number | Transaction amount |
-| status | string | PENDING, SUCCESS, FAILED, CANCELLED, or REJECTED |
-| coins | number | Coins (RECHARGE only) |
-| gatewayOrderId | string | Payment gateway order ID (RECHARGE only) |
-| gatewayPaymentId | string | Payment gateway payment ID (RECHARGE only) |
-| bankDetails | object | Bank account details (WITHDRAWAL only) |
-| transferReference | string | Bank transfer reference (WITHDRAWAL only) |
-| processedAt | string | Processing timestamp (WITHDRAWAL only) |
-| createdAt | string | Transaction timestamp |
-| updatedAt | string | Last update timestamp |
-
-### Report Fields
-
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Unique report ID |
-| description | string | Report description |
-| status | string | PENDING, UNDER_REVIEW, RESOLVED, or DISMISSED |
-| adminNotes | string | Admin notes |
-| resolvedAt | string | Resolution timestamp |
-| createdAt | string | Report timestamp |
-| reporter | object | Reporter user details |
-| reportedAgainst | object | Reported user details |
-| call | object | Related call details |
-
-### Plan Fields
-
-| Field | Type | Description |
-| --- | --- | --- |
-| _id | string | Unique plan ID |
-| amount | number | Price in currency |
-| coins | number | Coins received |
-| discountPercentage | number | Discount percentage |
-| isActive | boolean | Plan availability |
-| createdAt | string | Creation timestamp |
-| updatedAt | string | Last update timestamp |
-
 ---
 
-## ⚙️ Configuration Management
-
-Application configuration management endpoints for admin panel settings.
-
----
-
-## 📖 23. Get Configuration
+## ⚙️ Get Configuration
 
 Retrieve current application configuration settings.
 
-### Get Configuration Endpoint
+```
+GET /admin/config
+```
 
-GET `/admin/config`
+### Response
 
-### Get Configuration Success Response (200)
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -1678,7 +1343,7 @@ GET `/admin/config`
       "inrToCoinRatio": {
         "value": 0.1,
         "label": "INR to Coin Ratio",
-        "description": "This setting controls how many coins equal ₹1 when calculating withdrawal amounts. For example, if set to 1, then 1 coin equals ₹1, so 500 coins will be worth ₹500. If set to 2, then 2 coins equal ₹1, meaning 500 coins would be worth ₹250. A higher value means telecallers need more coins to earn the same amount of money."
+        "description": "Controls how many coins equal ₹1 for withdrawals"
       },
       "minWithdrawalCoins": {
         "value": 100,
@@ -1715,36 +1380,36 @@ GET `/admin/config`
 }
 ```
 
-### Get Configuration Example - cURL
+### Example
 
 ```bash
-curl -X GET \
-  http://localhost:3000/admin/config \
-  -H "Cookie: authenticationToken=your_jwt_token"
+curl -X GET http://localhost:8000/admin/config \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ---
 
-## 📝 24. Update Configuration
+## ⚙️ Update Configuration
 
-Update application configuration settings.
+Update application configuration settings.  
+**At least one field is required.**
 
-### Update Configuration Endpoint
+```
+PUT /admin/config
+```
 
-PUT `/admin/config`
+### Request
 
-### Update Configuration Request Body
+#### Body
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| inrToCoinRatio | number | No | INR to coin conversion rate (min: 0.01) |
-| minWithdrawalCoins | number | No | Minimum coins for withdrawal (min: 1) |
-| userVideoCallCoinPerSec | number | No | User video call coins per second (min: 1) |
-| userAudioCallCoinPerSec | number | No | User audio call coins per second (min: 1) |
-| telecallerVideoCallCoinPerSec | number | No | Telecaller video call coins per second (min: 1) |
-| telecallerAudioCallCoinPerSec | number | No | Telecaller audio call coins per second (min: 1) |
-
-**Note:** At least one configuration field must be provided.
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `inrToCoinRatio` | `number` | ❌ No | Min: 0.01 |
+| `minWithdrawalCoins` | `number` | ❌ No | Min: 1 |
+| `userVideoCallCoinPerSec` | `number` | ❌ No | Min: 1 |
+| `userAudioCallCoinPerSec` | `number` | ❌ No | Min: 1 |
+| `telecallerVideoCallCoinPerSec` | `number` | ❌ No | Min: 1 |
+| `telecallerAudioCallCoinPerSec` | `number` | ❌ No | Min: 1 |
 
 ```json
 {
@@ -1754,108 +1419,91 @@ PUT `/admin/config`
 }
 ```
 
-### Update Configuration Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
   "success": true,
   "message": "Configuration updated successfully.",
   "data": {
-    "withdrawal": {
-      "inrToCoinRatio": {
-        "value": 0.15,
-        "label": "INR to Coin Ratio",
-        "description": "This setting controls how many coins equal ₹1 when calculating withdrawal amounts. For example, if set to 1, then 1 coin equals ₹1, so 500 coins will be worth ₹500. If set to 2, then 2 coins equal ₹1, meaning 500 coins would be worth ₹250. A higher value means telecallers need more coins to earn the same amount of money."
-      },
-      "minWithdrawalCoins": {
-        "value": 150,
-        "label": "Minimum Withdrawal Coins",
-        "description": "Minimum coins required for withdrawal"
-      }
-    },
-    "videoCall": {
-      "userCoinPerSec": {
-        "value": 3,
-        "label": "User Video Call Coins/Second",
-        "description": "Coins charged per second for user video calls"
-      },
-      "telecallerCoinPerSec": {
-        "value": 1,
-        "label": "Telecaller Video Call Coins/Second",
-        "description": "Coins earned per second for telecaller video calls"
-      }
-    },
-    "audioCall": {
-      "userCoinPerSec": {
-        "value": 1,
-        "label": "User Audio Call Coins/Second",
-        "description": "Coins charged per second for user audio calls"
-      },
-      "telecallerCoinPerSec": {
-        "value": 1,
-        "label": "Telecaller Audio Call Coins/Second",
-        "description": "Coins earned per second for telecaller audio calls"
-      }
-    },
+    "withdrawal": {...},
+    "videoCall": {...},
+    "audioCall": {...},
     "updatedAt": "2024-01-15T10:35:00.000Z"
   }
 }
 ```
 
-### Update Configuration Error Responses
+#### ❌ Errors
 
-#### Update config, Validation Error (400)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Invalid ratio | `"INR to Coin ratio must be at least 0.01."` |
+| `400` | No fields provided | `"At least one configuration field is required."` |
 
-```json
-{
-  "success": false,
-  "message": "INR to Coin ratio must be at least 0.01."
-}
-```
-
-#### Update config, No Fields Provided (400)
-
-```json
-{
-  "success": false,
-  "message": "At least one configuration field is required."
-}
-```
-
-### Update Configuration Example - cURL
+### Example
 
 ```bash
-curl -X PUT \
-  http://localhost:3000/admin/config \
+curl -X PUT http://localhost:8000/admin/config \
   -H "Content-Type: application/json" \
-  -H "Cookie: authenticationToken=your_jwt_token" \
-  -d '{
-    "inrToCoinRatio": 0.15,
-    "minWithdrawalCoins": 150
-  }'
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{"inrToCoinRatio": 0.15, "minWithdrawalCoins": 150}'
 ```
 
 ---
 
-## 📋 Configuration Fields
+## 📊 Response Field Reference
 
-### Withdrawal Configuration
-
-| Field | Type | Description |
-| --- | --- | --- |
-| inrToCoinRatio | number | This setting controls how many coins equal ₹1 when calculating withdrawal amounts |
-| minWithdrawalCoins | number | Minimum coins required for withdrawal |
-
-### Video Call Configuration
+### User Fields
 
 | Field | Type | Description |
-| --- | --- | --- |
-| userCoinPerSec | number | Coins charged per second for user video calls |
-| telecallerCoinPerSec | number | Coins earned per second for telecaller video calls |
+|-------|------|-------------|
+| `_id` | `string` | Unique user ID |
+| `phone` | `string` | Phone number |
+| `name` | `string` | User's name (nullable) |
+| `gender` | `string` | `MALE`, `FEMALE`, or `OTHER` |
+| `accountStatus` | `string` | `ACTIVE` or `SUSPENDED` |
+| `walletBalance` | `number` | Current coin balance |
+| `complaints` | `array` | Last 5 complaints |
+| `totalComplaints` | `number` | Total complaints count |
 
-### Audio Call Configuration
+### Telecaller Fields
 
 | Field | Type | Description |
-| --- | --- | --- |
-| userCoinPerSec | number | Coins charged per second for user audio calls |
-| telecallerCoinPerSec | number | Coins earned per second for telecaller audio calls |
+|-------|------|-------------|
+| `telecallerProfile.about` | `string` | Telecaller's bio |
+| `telecallerProfile.approvalStatus` | `string` | `PENDING`, `APPROVED`, `REJECTED` |
+| `telecallerProfile.verificationNotes` | `string` | Admin notes |
+| `telecallerProfile.presence` | `string` | `ONLINE`, `OFFLINE`, `ON_CALL` |
+
+### Transaction Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `string` | `RECHARGE` or `WITHDRAWAL` |
+| `amount` | `number` | Transaction amount |
+| `status` | `string` | `PENDING`, `SUCCESS`, `FAILED`, `CANCELLED`, `REJECTED` |
+| `coins` | `number` | Coins (RECHARGE only) |
+| `bankDetails` | `object` | Bank info (WITHDRAWAL only) |
+| `transferReference` | `string` | Bank reference (WITHDRAWAL only) |
+
+### Report Status Values
+
+| Status | Description |
+|--------|-------------|
+| `PENDING` | New report, not yet reviewed |
+| `UNDER_REVIEW` | Admin is investigating |
+| `RESOLVED` | Issue has been resolved |
+| `DISMISSED` | Report was invalid/dismissed |
+
+### Plan Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `_id` | `string` | Unique plan ID |
+| `amount` | `number` | Price in currency |
+| `coins` | `number` | Coins received |
+| `discountPercentage` | `number` | Discount (0-99) |
+| `isActive` | `boolean` | Plan availability |

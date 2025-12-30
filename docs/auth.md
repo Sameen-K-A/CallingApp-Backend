@@ -1,42 +1,51 @@
-# 🔐 Auth API
+# 🔐 Authentication API
 
-Authentication endpoints for OTP-based login.
-
----
-
-## 📋 Endpoints Overview
-
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| POST | `/auth/send` | Send OTP to phone number | No |
-| POST | `/auth/resend` | Resend OTP to existing user | No |
-| POST | `/auth/verify` | Verify OTP and get token | No |
+> OTP-based phone authentication for user login and registration.
 
 ---
 
-## ⏱️ Rate Limiting
+## 📋 Quick Reference
 
-| Endpoint | Limit | Cooldown |
-| --- | --- | --- |
-| `/auth/send` | 5 per 15 min per phone | 60 seconds between requests |
-| `/auth/resend` | 5 per 15 min per phone | 60 seconds between requests |
-| `/auth/verify` | 10 per 15 min per phone | None |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/send` | Send OTP to phone number |
+| `POST` | `/auth/resend` | Resend OTP to existing user |
+| `POST` | `/auth/verify` | Verify OTP and get access token |
 
 ---
 
-## 📤 1. Send OTP
+## ⏱️ Rate Limits
 
-Sends a 5-digit OTP to the provided phone number. Creates a new user account if phone doesn't exist.
+| Endpoint | Requests | Window | Cooldown |
+|----------|----------|--------|----------|
+| `/auth/send` | 5 requests | 15 minutes | 60s between requests |
+| `/auth/resend` | 5 requests | 15 minutes | 60s between requests |
+| `/auth/verify` | 10 requests | 15 minutes | None |
 
-### Send OTP Endpoint
+---
 
-POST `/auth/send`
+## 📤 Send OTP
 
-#### Send OTP Request Body
+Sends a 5-digit OTP to the provided phone number.  
+**Creates a new user account if the phone number doesn't exist.**
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| phone | string | Yes | 10-15 digits only, no country code |
+```
+POST /auth/send
+```
+
+### Request
+
+#### Headers
+
+| Header | Value |
+|--------|-------|
+| `Content-Type` | `application/json` |
+
+#### Body
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `phone` | `string` | ✅ Yes | 10-15 digits, numbers only, no country code |
 
 ```json
 {
@@ -44,7 +53,9 @@ POST `/auth/send`
 }
 ```
 
-#### Send OTP Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -53,45 +64,16 @@ POST `/auth/send`
 }
 ```
 
-#### Send OTP Error Responses
+#### ❌ Errors
 
-##### Send OTP Validation Error (400)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Invalid phone format | `"Phone number must be between 10 and 15 digits."` |
+| `403` | Account suspended | `"Your account has been suspended. Please contact support."` |
+| `429` | Rate limit exceeded | `"Too many requests. Please try again later."` |
+| `429` | Cooldown active | `"Please wait 45 seconds, before requesting another OTP."` |
 
-```json
-{
-  "success": false,
-  "message": "Phone number must be between 10 and 15 digits."
-}
-```
-
-##### Send OTP Account Suspended (403)
-
-```json
-{
-  "success": false,
-  "message": "Your account has been suspended. Please contact support."
-}
-```
-
-##### Send OTP Rate Limited (429)
-
-```json
-{
-  "success": false,
-  "message": "Too many requests. Please try again later."
-}
-```
-
-##### Send OTP Cooldown Active (429)
-
-```json
-{
-  "success": false,
-  "message": "Please wait 45 seconds, before requesting another OTP."
-}
-```
-
-#### Send OTP Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/auth/send \
@@ -99,19 +81,30 @@ curl -X POST http://localhost:8000/auth/send \
   -d '{"phone": "9876543210"}'
 ```
 
-## 🔄 2. Resend OTP
+---
 
-Resends OTP to an existing user. Fails if user doesn't exist.
+## 🔄 Resend OTP
 
-### Resend OTP Endpoint
+Resends OTP to an **existing user only**.  
+Fails if the phone number is not registered.
 
-POST `/auth/resend`
+```
+POST /auth/resend
+```
 
-#### Resend OTP Request Body
+### Request
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| phone | string | Yes | 10-15 digits only, no country code |
+#### Headers
+
+| Header | Value |
+|--------|-------|
+| `Content-Type` | `application/json` |
+
+#### Body
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `phone` | `string` | ✅ Yes | 10-15 digits, numbers only, no country code |
 
 ```json
 {
@@ -119,7 +112,9 @@ POST `/auth/resend`
 }
 ```
 
-#### Resend OTP Success Response (200)
+### Response
+
+#### ✅ Success `200 OK`
 
 ```json
 {
@@ -128,45 +123,16 @@ POST `/auth/resend`
 }
 ```
 
-#### Resend OTP Error Responses
+#### ❌ Errors
 
-##### Resend OTP User Not Found (404)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `404` | User not found | `"No account found with this phone number."` |
+| `403` | Account suspended | `"Your account has been suspended. Please contact support."` |
+| `429` | Rate limit exceeded | `"Too many requests. Please try again later."` |
+| `429` | Cooldown active | `"Please wait 45 seconds, before requesting another OTP."` |
 
-```json
-{
-  "success": false,
-  "message": "No account found with this phone number."
-}
-```
-
-##### Resend OTP Account Suspended (403)
-
-```json
-{
-  "success": false,
-  "message": "Your account has been suspended. Please contact support."
-}
-```
-
-##### Resend OTP Rate Limited (429)
-
-```json
-{
-  "success": false,
-  "message": "Too many requests. Please try again later."
-}
-```
-
-##### Resend OTP Cooldown Active (429)
-
-```json
-{
-  "success": false,
-  "message": "Please wait 45 seconds, before requesting another OTP."
-}
-```
-
-#### Resend OTP Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/auth/resend \
@@ -174,20 +140,30 @@ curl -X POST http://localhost:8000/auth/resend \
   -d '{"phone": "9876543210"}'
 ```
 
-## ✅ 3. Verify OTP
+---
 
-Verifies the OTP and returns a JWT token with user data.
+## ✅ Verify OTP
 
-### Verify OTP Endpoint
+Verifies the OTP and returns a **JWT access token** with user data.
 
-POST `/auth/verify`
+```
+POST /auth/verify
+```
 
-#### Verify OTP Request Body
+### Request
 
-| Field | Type | Required | Rules |
-| --- | --- | --- | --- |
-| phone | string | Yes | 10-15 digits only |
-| otp | string | Yes | Exactly 5 digits |
+#### Headers
+
+| Header | Value |
+|--------|-------|
+| `Content-Type` | `application/json` |
+
+#### Body
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `phone` | `string` | ✅ Yes | 10-15 digits only |
+| `otp` | `string` | ✅ Yes | Exactly 5 digits |
 
 ```json
 {
@@ -196,11 +172,17 @@ POST `/auth/verify`
 }
 ```
 
-#### Verify OTP Success Responses
+### Response
 
-##### Verify OTP New User (200)
+#### ✅ Success `200 OK`
 
-User who just registered and hasn't completed profile setup.
+The response includes a JWT token and user data. The user object varies based on profile completion and role.
+
+---
+
+**🆕 New User** *(profile not completed)*
+
+> **Frontend Tip:** Check if `user.name` is `null` → redirect to `/complete-profile`
 
 ```json
 {
@@ -220,9 +202,11 @@ User who just registered and hasn't completed profile setup.
 }
 ```
 
-##### Verify OTP Regular User (200)
+---
 
-User with completed profile.
+**👤 Regular User** *(profile completed)*
+
+> **Frontend Tip:** `user.name` exists → redirect to `/home`
 
 ```json
 {
@@ -247,9 +231,11 @@ User with completed profile.
 }
 ```
 
-##### Verify OTP Telecaller (200)
+---
 
-User registered as telecaller.
+**📞 Telecaller** *(with telecaller profile)*
+
+> **Frontend Tip:** Check `user.role === "TELECALLER"` for telecaller-specific UI
 
 ```json
 {
@@ -279,63 +265,18 @@ User registered as telecaller.
 }
 ```
 
-#### Verify OTP Error Responses
+#### ❌ Errors
 
-##### Verify OTP Invalid OTP (400)
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Invalid OTP | `"Invalid OTP. 3 attempt(s) remaining."` |
+| `400` | OTP expired | `"OTP has expired. Please request a new OTP."` |
+| `400` | OTP not found | `"OTP not found or expired. Please request a new OTP."` |
+| `400` | Max attempts exceeded | `"Too many failed attempts. Please request a new OTP."` |
+| `403` | Account suspended | `"Your account has been suspended. Please contact support."` |
+| `429` | Rate limit exceeded | `"Too many attempts. Please try again later."` |
 
-```json
-{
-  "success": false,
-  "message": "Invalid OTP. 3 attempt(s) remaining."
-}
-```
-
-##### Verify OTP OTP Expired (400)
-
-```json
-{
-  "success": false,
-  "message": "OTP has expired. Please request a new OTP."
-}
-```
-
-##### Verify OTP OTP Not Found (400)
-
-```json
-{
-  "success": false,
-  "message": "OTP not found or expired. Please request a new OTP."
-}
-```
-
-##### Verify OTP Max Attempts Exceeded (400)
-
-```json
-{
-  "success": false,
-  "message": "Too many failed attempts. Please request a new OTP."
-}
-```
-
-##### Verify OTP Account Suspended (403)
-
-```json
-{
-  "success": false,
-  "message": "Your account has been suspended. Please contact support."
-}
-```
-
-##### Verify OTP Rate Limited (429)
-
-```json
-{
-  "success": false,
-  "message": "Too many attempts. Please try again later."
-}
-```
-
-#### Verify OTP Example - cURL
+### Example
 
 ```bash
 curl -X POST http://localhost:8000/auth/verify \
@@ -343,41 +284,49 @@ curl -X POST http://localhost:8000/auth/verify \
   -d '{"phone": "9876543210", "otp": "12345"}'
 ```
 
-## 📊 User Response Fields
+---
 
-### Common Fields (All Users)
+## 📊 Response Field Reference
 
-| Field | Type | Nullable | Description |
-| --- | --- | --- | --- |
-| _id | string | No | Unique user ID |
-| phone | string | No | Phone number |
-| name | string | Yes | User's name |
-| dob | string | Yes | Date of birth (ISO format) |
-| gender | string | Yes | MALE, FEMALE, or OTHER |
-| profile | string | Yes | Avatar identifier |
-| language | string | Yes | Preferred language |
-| accountStatus | string | No | ACTIVE or SUSPENDED |
-| role | string | No | USER or TELECALLER |
-| wallet.balance | number | No | Current wallet balance |
-| createdAt | string | No | Account creation timestamp |
-
-### Telecaller Additional Fields
+### User Object Fields
 
 | Field | Type | Nullable | Description |
-| --- | --- | --- | --- |
-| telecallerProfile.about | string | Yes | Telecaller's bio |
-| telecallerProfile.approvalStatus | string | No | PENDING, APPROVED, or REJECTED |
-| telecallerProfile.verificationNotes | string | Yes | Admin notes |
+|-------|------|----------|-------------|
+| `_id` | `string` | No | Unique user ID (MongoDB ObjectId) |
+| `phone` | `string` | No | User's phone number |
+| `name` | `string` | **Yes** | User's display name (`null` if profile not completed) |
+| `dob` | `string` | Yes | Date of birth (ISO 8601 format) |
+| `gender` | `string` | Yes | `MALE`, `FEMALE`, or `OTHER` |
+| `profile` | `string` | Yes | Avatar identifier (e.g., `avatar-1` to `avatar-8`) |
+| `language` | `string` | Yes | Preferred language code |
+| `accountStatus` | `string` | No | `ACTIVE` or `SUSPENDED` |
+| `role` | `string` | No | `USER` or `TELECALLER` |
+| `wallet.balance` | `number` | No | Current coin balance |
+| `createdAt` | `string` | No | Account creation timestamp (ISO 8601) |
 
-## 🔑 Token Details
+### Telecaller-Specific Fields
+
+Only present when `role === "TELECALLER"`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `telecallerProfile.about` | `string` | Telecaller's bio/description |
+| `telecallerProfile.approvalStatus` | `string` | `PENDING`, `APPROVED`, or `REJECTED` |
+| `telecallerProfile.verificationNotes` | `string` | Admin verification notes |
+
+---
+
+## 🔑 JWT Token
+
+### Token Details
 
 | Property | Value |
-| --- | --- |
-| Algorithm | HS256 |
+|----------|-------|
+| Algorithm | `HS256` |
 | Expiry | 7 days |
-| Payload | userId, phone, role |
+| Header Format | `Authorization: Bearer <token>` |
 
-### Token Payload Structure
+### Token Payload
 
 ```json
 {
@@ -389,56 +338,73 @@ curl -X POST http://localhost:8000/auth/verify \
 }
 ```
 
-## 🔄 Auth Flow Diagram
+### Usage
 
-### New User Flow
+Include the token in the `Authorization` header for authenticated requests:
 
-```text
-User                          Server
-  |                              |
-  |  POST /auth/send             |
-  |  { phone }                   |
-  |----------------------------->|
-  |                              | Create user
-  |                              | Generate OTP
-  |                              | Send SMS
-  |    { success: true }         |
-  |<-----------------------------|
-  |                              |
-  |  POST /auth/verify           |
-  |  { phone, otp }              |
-  |----------------------------->|
-  |                              | Verify OTP
-  |                              | Generate JWT
-  |    { token, user }           |
-  |<-----------------------------|
-  |                              |
-  |  Navigate to /complete-profile
-  |  (user.name is null)         |
+```bash
+curl -X GET http://localhost:8000/users/me \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-### Existing User Flow
+---
 
-```text
-User                          Server
-  |                              |
-  |  POST /auth/send             |
-  |  { phone }                   |
-  |----------------------------->|
-  |                              | Find user
-  |                              | Generate OTP
-  |                              | Send SMS
-  |    { success: true }         |
-  |<-----------------------------|
-  |                              |
-  |  POST /auth/verify           |
-  |  { phone, otp }              |
-  |----------------------------->|
-  |                              | Verify OTP
-  |                              | Generate JWT
-  |    { token, user }           |
-  |<-----------------------------|
-  |                              |
-  |  Navigate to /home           |
-  |  (user.name exists)          |
+## 🔄 Authentication Flow
+
+### New User Registration
+
+```
+┌─────────┐                              ┌─────────┐
+│  Client │                              │  Server │
+└────┬────┘                              └────┬────┘
+     │                                        │
+     │  POST /auth/send                       │
+     │  { "phone": "9876543210" }             │
+     │───────────────────────────────────────>│
+     │                                        │ ✓ Create new user
+     │                                        │ ✓ Generate 5-digit OTP
+     │                                        │ ✓ Send SMS
+     │  { "success": true }                   │
+     │<───────────────────────────────────────│
+     │                                        │
+     │  POST /auth/verify                     │
+     │  { "phone": "...", "otp": "12345" }    │
+     │───────────────────────────────────────>│
+     │                                        │ ✓ Verify OTP
+     │                                        │ ✓ Generate JWT
+     │  { "token": "...", "user": {...} }     │
+     │<───────────────────────────────────────│
+     │                                        │
+     │  📱 Check: user.name === null?         │
+     │     → Redirect to /complete-profile    │
+     │                                        │
+```
+
+### Existing User Login
+
+```
+┌─────────┐                              ┌─────────┐
+│  Client │                              │  Server │
+└────┬────┘                              └────┬────┘
+     │                                        │
+     │  POST /auth/send                       │
+     │  { "phone": "9876543210" }             │
+     │───────────────────────────────────────>│
+     │                                        │ ✓ Find existing user
+     │                                        │ ✓ Generate 5-digit OTP
+     │                                        │ ✓ Send SMS
+     │  { "success": true }                   │
+     │<───────────────────────────────────────│
+     │                                        │
+     │  POST /auth/verify                     │
+     │  { "phone": "...", "otp": "12345" }    │
+     │───────────────────────────────────────>│
+     │                                        │ ✓ Verify OTP
+     │                                        │ ✓ Generate JWT
+     │  { "token": "...", "user": {...} }     │
+     │<───────────────────────────────────────│
+     │                                        │
+     │  📱 Check: user.name exists?           │
+     │     → Redirect to /home                │
+     │                                        │
 ```
