@@ -20,7 +20,8 @@ import {
   updateConfigSchema,
   withdrawalIdParamSchema,
   completeWithdrawalSchema,
-  userDistributionQuerySchema
+  userDistributionQuerySchema,
+  rechargeWithdrawalTrendsQuerySchema,
 } from '../../middleware/validation/admin.validation';
 import { authenticate } from '../../utils/jwt';
 
@@ -35,6 +36,7 @@ router.post('/auth/google', validateBody(googleLoginSchema), controller.googleLo
 // Dashboard stats
 router.get('/dashboard/stats', authenticate('ADMIN'), controller.getDashboardStats);
 router.get('/dashboard/user-distribution', authenticate('ADMIN'), validateQuery(userDistributionQuerySchema), controller.getUserDistribution);
+router.get('/dashboard/recharge-withdrawal-trends', authenticate('ADMIN'), validateQuery(rechargeWithdrawalTrendsQuerySchema), controller.getRechargeWithdrawalTrends);
 
 // User actions
 router.get('/users', authenticate('ADMIN'), validateQuery(paginationSchema), controller.getUsers);

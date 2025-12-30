@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
-import { IAdminService, UpdateConfigInput, UserDistributionPeriod } from './admin.types'
+import { IAdminService, UpdateConfigInput, UserDistributionPeriod, RechargeWithdrawalTrendsPeriod } from './admin.types'
 import { BaseController } from '../../utils/baseController';
 
 export class AdminController extends BaseController {
@@ -249,6 +249,21 @@ export class AdminController extends BaseController {
       res.status(200).json({
         success: true,
         message: 'User distribution fetched successfully',
+        data
+      })
+    } catch (error) {
+      next(error)
+    }
+  };
+
+  public getRechargeWithdrawalTrends = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const period = req.query.period as RechargeWithdrawalTrendsPeriod
+      const data = await this.adminService.getRechargeWithdrawalTrends(period)
+
+      res.status(200).json({
+        success: true,
+        message: 'Recharge and withdrawal trends fetched successfully',
         data
       })
     } catch (error) {

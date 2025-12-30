@@ -18,6 +18,10 @@ import {
   UpdatePlanInput,
   UpdateConfigInput,
   WithdrawalTransactionForProcess,
+  RechargeWithdrawalTrendsPeriod,
+  RechargeWithdrawalTrendsResponse,
+  TrendDataPoint,
+  TrendsAggregationItem,
 } from './admin.types'
 import AdminModel from '../../models/admin.model'
 import UserModel from '../../models/user.model'
@@ -713,6 +717,41 @@ export class AdminRepository implements IAdminRepository {
       users: usersCount,
       telecallers: telecallersCount
     };
+  };
+
+  // Get recharge/withdrawal stats
+  public async getRechargeWithdrawalStats(startDate: Date, endDate: Date, groupBy: 'hour' | 'day'): Promise<TrendsAggregationItem[]> {
+    return await TransactionModel.aggregate([
+      {
+        $match: {
+          status: 'SUCCESS',
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: groupBy === 'hour'
+            ? {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+              day: { $dayOfMonth: '$createdAt' },
+              hour: { $hour: '$createdAt' }
+            }
+            : {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+              day: { $dayOfMonth: '$createdAt' }
+            },
+          recharge: {
+            $sum: { $cond: [{ $eq: ['$type', 'RECHARGE'] }, '$amount', 0] }
+          },
+          withdrawal: {
+            $sum: { $cond: [{ $eq: ['$type', 'WITHDRAWAL'] }, '$amount', 0] }
+          }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1, '_id.hour': 1 } }
+    ]);
   };
 
   // ============================================

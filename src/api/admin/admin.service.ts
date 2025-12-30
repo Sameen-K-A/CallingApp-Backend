@@ -13,7 +13,11 @@ import {
   DashboardStatsResponse,
   UserDistributionPeriod,
   UserDistributionResponse,
+  RechargeWithdrawalTrendsPeriod,
+  RechargeWithdrawalTrendsResponse,
   PlanListResponse,
+  TrendDataPoint,
+
   PlanDetailsResponse,
   CreatePlanInput,
   UpdatePlanInput,
@@ -282,6 +286,95 @@ export class AdminService implements IAdminService {
 
   public async getUserDistribution(period: UserDistributionPeriod): Promise<UserDistributionResponse> {
     return await this.adminRepository.getUserDistribution(period);
+  };
+
+  public async getRechargeWithdrawalTrends(period: RechargeWithdrawalTrendsPeriod): Promise<RechargeWithdrawalTrendsResponse> {
+    const now = new Date();
+    let startDate: Date;
+    let groupBy: 'hour' | 'day';
+    let numberOfPoints: number;
+
+    switch (period) {
+      case 'last24hours':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        groupBy = 'hour';
+        numberOfPoints = 24;
+        break;
+      case 'last7days':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        groupBy = 'day';
+        numberOfPoints = 7;
+        break;
+      case 'last30days':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        groupBy = 'day';
+        numberOfPoints = 30;
+        break;
+    }
+
+    const trendsData = await this.adminRepository.getRechargeWithdrawalStats(startDate, now, groupBy);
+
+    // Generate all time slots and fill with data or zeros
+    const trends: TrendDataPoint[] = [];
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Create a map from aggregation results for quick lookup
+    const dataMap = new Map<string, { recharge: number; withdrawal: number }>();
+    for (const item of trendsData) {
+      let key: string;
+      if (period === 'last24hours') {
+        key = `${item._id.year}-${item._id.month}-${item._id.day}-${item._id.hour}`;
+      } else {
+        key = `${item._id.year}-${item._id.month}-${item._id.day}`;
+      }
+      dataMap.set(key, { recharge: item.recharge, withdrawal: item.withdrawal });
+    }
+
+    // Generate all time points
+    for (let i = 0; i < numberOfPoints; i++) {
+      let pointDate: Date;
+      let label: string;
+      let key: string;
+
+      if (period === 'last24hours') {
+        // Go backwards from now, hour by hour
+        pointDate = new Date(now.getTime() - (numberOfPoints - 1 - i) * 60 * 60 * 1000);
+        const hour = pointDate.getHours();
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        label = `${hour12.toString().padStart(2, '0')} ${ampm}`;
+        key = `${pointDate.getFullYear()}-${pointDate.getMonth() + 1}-${pointDate.getDate()}-${hour}`;
+      } else {
+        // Go backwards from now, day by day
+        pointDate = new Date(now.getTime() - (numberOfPoints - 1 - i) * 24 * 60 * 60 * 1000);
+        pointDate.setHours(0, 0, 0, 0);
+
+        if (period === 'last7days') {
+          const weekday = weekdays[pointDate.getDay()];
+          const day = pointDate.getDate();
+          label = `${weekday} ${day}`;
+        } else {
+          // last30days
+          const day = pointDate.getDate();
+          const month = months[pointDate.getMonth()];
+          label = `${day} ${month}`;
+        }
+        key = `${pointDate.getFullYear()}-${pointDate.getMonth() + 1}-${pointDate.getDate()}`;
+      }
+
+      const data = dataMap.get(key) || { recharge: 0, withdrawal: 0 };
+      trends.push({
+        label,
+        recharge: data.recharge,
+        withdrawal: data.withdrawal
+      });
+    }
+
+    return {
+      period,
+      trends
+    };
   };
 
   // ============================================

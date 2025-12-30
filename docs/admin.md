@@ -18,6 +18,7 @@
 |--------|----------|-------------|
 | `GET` | `/admin/dashboard/stats` | Get dashboard statistics |
 | `GET` | `/admin/dashboard/user-distribution` | Get user/telecaller distribution by period |
+| `GET` | `/admin/dashboard/recharge-withdrawal-trends` | Get recharge/withdrawal trends |
 
 ### 👥 User Management
 
@@ -242,6 +243,70 @@ GET /admin/dashboard/user-distribution
 
 ```bash
 curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=last7days" \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+---
+
+## 📈 Recharge & Withdrawal Trends
+
+Get aggregated recharge and withdrawal data for a specified period.
+**Useful for dashboard charts.**
+
+```
+GET /admin/dashboard/recharge-withdrawal-trends
+```
+
+### Request
+
+#### Query Parameters
+
+| Parameter | Type | Required | Values |
+|-----------|------|----------|--------|
+| `period` | `string` | ✅ Yes | `last24hours`, `last7days`, `last30days` |
+
+**Period Logic:**
+- `last24hours`: Hourly data for the past 24 hours.
+- `last7days`: Daily data for the past 7 days.
+- `last30days`: Daily data for the past 30 days.
+
+### Response
+
+#### ✅ Success `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Recharge and withdrawal trends fetched successfully",
+  "data": {
+    "period": "last7days",
+    "trends": [
+      {
+        "label": "Mon 12",
+        "recharge": 1500,
+        "withdrawal": 500
+      },
+      {
+        "label": "Tue 13",
+        "recharge": 2000,
+        "withdrawal": 0
+      }
+    ]
+  }
+}
+```
+
+#### ❌ Errors
+
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `400` | Missing period | `"Period is required."` |
+| `400` | Invalid period | `"Period must be one of: last24hours, last7days, last30days."` |
+
+### Example
+
+```bash
+curl -X GET "http://localhost:8000/admin/dashboard/recharge-withdrawal-trends?period=last7days" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 

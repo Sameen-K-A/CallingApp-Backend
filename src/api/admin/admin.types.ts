@@ -270,6 +270,31 @@ export interface UserDistributionResponse {
   telecallers: number;
 }
 
+// Recharge/Withdrawal Trends Chart Types
+export type RechargeWithdrawalTrendsPeriod = 'last24hours' | 'last7days' | 'last30days';
+
+export interface TrendDataPoint {
+  label: string;
+  recharge: number;
+  withdrawal: number;
+}
+
+export interface TrendsAggregationItem {
+  _id: {
+    year: number;
+    month: number;
+    day: number;
+    hour?: number;
+  };
+  recharge: number;
+  withdrawal: number;
+}
+
+export interface RechargeWithdrawalTrendsResponse {
+  period: RechargeWithdrawalTrendsPeriod;
+  trends: TrendDataPoint[];
+}
+
 // ============================================
 // Config DTOs
 // ============================================
@@ -316,6 +341,7 @@ export interface IAdminRepository {
   updateTelecallerStatus(telecallerId: string, status: 'APPROVED' | 'REJECTED', adminNotes?: string): Promise<IUserDocument | null>
   getDashboardStats(): Promise<DashboardStatsResponse>
   getUserDistribution(period: UserDistributionPeriod): Promise<UserDistributionResponse>
+  getRechargeWithdrawalStats(startDate: Date, endDate: Date, groupBy: 'hour' | 'day'): Promise<TrendsAggregationItem[]>
   // Plan Management
   getAllPlans(page: number, limit: number): Promise<PaginatedResult<PlanListResponse>>
   getPlanById(planId: string): Promise<PlanDetailsResponse | null>
@@ -349,6 +375,7 @@ export interface IAdminService {
   unblockUser(userId: string): Promise<{ success: boolean, message: string }>
   getDashboardStats(): Promise<DashboardStatsResponse>
   getUserDistribution(period: UserDistributionPeriod): Promise<UserDistributionResponse>
+  getRechargeWithdrawalTrends(period: RechargeWithdrawalTrendsPeriod): Promise<RechargeWithdrawalTrendsResponse>
   // Plan Management
   getPlans(page: number, limit: number): Promise<PaginatedResponse<PlanListResponse>>
   createPlan(data: CreatePlanInput): Promise<PlanDetailsResponse>

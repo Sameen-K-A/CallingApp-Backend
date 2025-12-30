@@ -334,3 +334,15 @@ export const userDistributionQuerySchema = Joi.object({
       'any.required': 'Period is required.'
     })
 });
+
+// Recharge/Withdrawal Trends Chart validation
+export const rechargeWithdrawalTrendsQuerySchema = Joi.object({
+  period: Joi
+    .string()
+    .valid('last24hours', 'last7days', 'last30days')
+    .required()
+    .messages({
+      'any.only': 'Period must be one of: last24hours, last7days, last30days.',
+      'any.required': 'Period is required.'
+    })
+});
