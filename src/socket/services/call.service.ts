@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import UserModel from '../../models/user.model';
 import CallModel from '../../models/call.model';
 import { getSocketId } from './presence.service';
@@ -499,6 +499,8 @@ export const cancelCall = async (userId: string, callId: string): Promise<CallAc
 // ============================================
 
 export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', enderId: string): Promise<CallEndResult> => {
+  const session = await mongoose.startSession();
+
   try {
     if (!isValidObjectId(callId)) {
       console.warn(`⚠️ endCall: Invalid callId: ${callId}`);
@@ -518,18 +520,24 @@ export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', en
 
     const duration = call.acceptedAt ? calculateDuration(call.acceptedAt) : 0;
 
-    // Run both updates in parallel
-    await Promise.all([
-      CallModel.updateOne(
-        { _id: callId },
-        { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } }
-      ),
-      UserModel.updateOne(
-        { _id: call.telecallerId, role: 'TELECALLER' },
-        { $set: { 'telecallerProfile.presence': 'ONLINE' } }
-      ),
-      destroyLiveKitRoom(call._id.toString())
-    ]);
+    // Use transaction for atomic updates
+    await session.withTransaction(async () => {
+      await Promise.all([
+        CallModel.updateOne(
+          { _id: callId },
+          { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } },
+          { session }
+        ),
+        UserModel.updateOne(
+          { _id: call.telecallerId, role: 'TELECALLER' },
+          { $set: { 'telecallerProfile.presence': 'ONLINE' } },
+          { session }
+        )
+      ]);
+    });
+
+    // Destroy LiveKit room outside transaction (external service)
+    await destroyLiveKitRoom(call._id.toString());
 
     console.log(`📞 Call ended: ${callId} | Duration: ${duration}s | Ended by: ${endedBy}`);
 
@@ -545,6 +553,8 @@ export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', en
   } catch (error) {
     console.error('❌ Error ending call:', error);
     return createErrorResult('Failed to end call.');
+  } finally {
+    session.endSession();
   }
 };
 
@@ -553,6 +563,8 @@ export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', en
 // ============================================
 
 export const handleUserDisconnectDuringCall = async (userId: string): Promise<void> => {
+  const session = await mongoose.startSession();
+
   try {
     const [activeCall, ringingCall] = await Promise.all([
       CallModel.findOne({ userId: userId, status: 'ACCEPTED' }).lean(),
@@ -565,17 +577,24 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
       const telecallerId = activeCall.telecallerId.toString();
       const duration = activeCall.acceptedAt ? calculateDuration(activeCall.acceptedAt) : 0;
 
-      await Promise.all([
-        CallModel.updateOne(
-          { _id: callId },
-          { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } }
-        ),
-        UserModel.updateOne(
-          { _id: telecallerId, role: 'TELECALLER' },
-          { $set: { 'telecallerProfile.presence': 'ONLINE' } }
-        ),
-        destroyLiveKitRoom(callId),
-      ]);
+      // Use transaction for atomic DB updates
+      await session.withTransaction(async () => {
+        await Promise.all([
+          CallModel.updateOne(
+            { _id: callId },
+            { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } },
+            { session }
+          ),
+          UserModel.updateOne(
+            { _id: telecallerId, role: 'TELECALLER' },
+            { $set: { 'telecallerProfile.presence': 'ONLINE' } },
+            { session }
+          )
+        ]);
+      });
+
+      // Destroy LiveKit room outside transaction (external service)
+      await destroyLiveKitRoom(callId);
 
       console.log(`📞 Call auto-ended (user disconnected): ${callId} | Duration: ${duration}s`);
 
@@ -608,6 +627,8 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
     }
   } catch (error) {
     console.error('❌ Error handling user disconnect during call:', error);
+  } finally {
+    session.endSession();
   }
 };
 
