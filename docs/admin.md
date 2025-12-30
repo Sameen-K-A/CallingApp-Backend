@@ -17,6 +17,7 @@ Admin endpoints for dashboard, user management, telecaller management, transacti
 | Method | Endpoint | Description | Auth Required |
 | --- | --- | --- | --- |
 | GET | `/admin/dashboard/stats` | Get dashboard statistics | Yes (ADMIN) |
+| GET | `/admin/dashboard/user-distribution` | Get user/telecaller distribution by period | Yes (ADMIN) |
 
 ### User Management
 
@@ -193,7 +194,90 @@ curl -X GET http://localhost:8000/admin/dashboard/stats \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 👥 3. Get Users
+## 📈 3. User Distribution
+
+Get count of users and telecallers registered within a specific time period. Useful for dashboard charts showing user/telecaller distribution.
+
+### User Distribution Endpoint
+
+GET `/admin/dashboard/user-distribution`
+
+### User Distribution Query Parameters
+
+| Parameter | Type | Required | Values | Description |
+| --- | --- | --- | --- | --- |
+| period | string | Yes | `today`, `last7days`, `last30days`, `all` | Time period filter for counting registrations |
+
+**Period Filter Logic:**
+
+| Period | Query Filter |
+| --- | --- |
+| `today` | `createdAt >= start of today (00:00:00)` |
+| `last7days` | `createdAt >= 7 days ago` |
+| `last30days` | `createdAt >= 30 days ago` |
+| `all` | No date filter (total count) |
+
+### User Distribution Success Response (200)
+
+```json
+{
+  "success": true,
+  "message": "User distribution fetched successfully",
+  "data": {
+    "users": 5430,
+    "telecallers": 420
+  }
+}
+```
+
+### User Distribution Response Fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| users | number | Count of users (role: USER) registered in the specified period |
+| telecallers | number | Count of telecallers (role: TELECALLER) registered in the specified period |
+
+### User Distribution Error Responses
+
+#### Missing Period Parameter (400)
+
+```json
+{
+  "success": false,
+  "message": "Period is required."
+}
+```
+
+#### Invalid Period Value (400)
+
+```json
+{
+  "success": false,
+  "message": "Period must be one of: today, last7days, last30days, all."
+}
+```
+
+### User Distribution Example - cURL
+
+```bash
+# Get distribution for today
+curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=today" \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+# Get distribution for last 7 days
+curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=last7days" \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+# Get distribution for last 30 days
+curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=last30days" \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+# Get all-time distribution
+curl -X GET "http://localhost:8000/admin/dashboard/user-distribution?period=all" \
+  -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## 👥 4. Get Users
 
 Get paginated list of all regular users.
 
@@ -243,7 +327,7 @@ curl -X GET "http://localhost:8000/admin/users?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 👤 4. Get User Details
+## 👤 5. Get User Details
 
 Get detailed information about a specific user.
 
@@ -304,7 +388,7 @@ curl -X GET http://localhost:8000/admin/users/507f1f77bcf86cd799439011 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 🚫 5. Block User
+## 🚫 6. Block User
 
 Block a user or approved telecaller.
 
@@ -363,7 +447,7 @@ curl -X POST http://localhost:8000/admin/users/507f1f77bcf86cd799439011/block \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ✅ 6. Unblock User
+## ✅ 7. Unblock User
 
 Unblock a previously blocked user or telecaller.
 
@@ -422,7 +506,7 @@ curl -X POST http://localhost:8000/admin/users/507f1f77bcf86cd799439011/unblock 
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📞 7. Get Telecallers
+## 📞 8. Get Telecallers
 
 Get paginated list of telecallers filtered by approval status.
 
@@ -471,7 +555,7 @@ curl -X GET "http://localhost:8000/admin/telecallers?status=PENDING&page=1&limit
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📞 8. Get Telecaller Details
+## 📞 9. Get Telecaller Details
 
 Get detailed information about a specific telecaller.
 
@@ -538,7 +622,7 @@ curl -X GET http://localhost:8000/admin/telecallers/507f1f77bcf86cd799439031 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ✅ 9. Approve Telecaller
+## ✅ 10. Approve Telecaller
 
 Approve a pending telecaller application.
 
@@ -615,7 +699,7 @@ curl -X PATCH http://localhost:8000/admin/telecallers/507f1f77bcf86cd799439031/a
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## ❌ 10. Reject Telecaller
+## ❌ 11. Reject Telecaller
 
 Reject a telecaller application with a reason.
 
@@ -697,7 +781,7 @@ curl -X PATCH http://localhost:8000/admin/telecallers/507f1f77bcf86cd799439031/r
   -d '{"reason": "Profile information is incomplete. Please provide more details about your experience."}'
 ```
 
-## 💰 11. Get Transactions
+## 💰 12. Get Transactions
 
 Get paginated list of transactions filtered by type.
 
@@ -752,7 +836,7 @@ curl -X GET "http://localhost:8000/admin/transactions?type=RECHARGE&page=1&limit
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 💰 12. Get Transaction Details
+## 💰 13. Get Transaction Details
 
 Get detailed information about a specific transaction.
 
@@ -838,7 +922,7 @@ curl -X GET http://localhost:8000/admin/transactions/507f1f77bcf86cd799439061 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## � 13. Complete Withdrawal
+## 💳 14. Complete Withdrawal
 
 Complete a pending withdrawal request by processing the bank transfer and deducting coins from telecaller's wallet.
 
@@ -941,7 +1025,7 @@ curl -X POST http://localhost:8000/admin/withdrawals/507f1f77bcf86cd799439061/co
   }'
 ```
 
-## 🚫 14. Reject Withdrawal
+## 🚫 15. Reject Withdrawal
 
 Reject a pending withdrawal request without processing any payment.
 
@@ -1019,7 +1103,7 @@ curl -X POST http://localhost:8000/admin/withdrawals/507f1f77bcf86cd799439061/re
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 15. Get Reports
+## 📝 16. Get Reports
 
 Get paginated list of all user reports.
 
@@ -1073,7 +1157,7 @@ curl -X GET "http://localhost:8000/admin/reports?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 16. Get Report Details
+## 📝 17. Get Report Details
 
 Get detailed information about a specific report including call details.
 
@@ -1148,7 +1232,7 @@ curl -X GET http://localhost:8000/admin/reports/507f1f77bcf86cd799439071 \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 📝 17. Update Report Status
+## 📝 18. Update Report Status
 
 Update the status of a report with optional admin notes.
 
@@ -1219,7 +1303,7 @@ curl -X PATCH http://localhost:8000/admin/reports/507f1f77bcf86cd799439071/statu
   -d '{"status": "RESOLVED", "adminNotes": "Investigated the issue. Warning issued to the telecaller."}'
 ```
 
-## 💎 18. Get Plans
+## 💎 19. Get Plans
 
 Get paginated list of all recharge plans.
 
@@ -1280,7 +1364,7 @@ curl -X GET "http://localhost:8000/admin/plans?page=1&limit=20" \
   -H "Cookie: authenticationToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 💎 19. Create Plan
+## 💎 20. Create Plan
 
 Create a new recharge plan.
 
@@ -1356,7 +1440,7 @@ curl -X POST http://localhost:8000/admin/plans \
   -d '{"amount": 299, "coins": 350, "discountPercentage": 15}'
 ```
 
-## 💎 20. Update Plan
+## 💎 21. Update Plan
 
 Update an existing recharge plan.
 
@@ -1436,7 +1520,7 @@ curl -X PUT http://localhost:8000/admin/plans/507f1f77bcf86cd799439094 \
   -d '{"amount": 349, "discountPercentage": 20, "isActive": true}'
 ```
 
-## 💎 21. Delete Plan
+## 💎 22. Delete Plan
 
 Soft delete a recharge plan.
 
@@ -1575,7 +1659,7 @@ Application configuration management endpoints for admin panel settings.
 
 ---
 
-## 📖 22. Get Configuration
+## 📖 23. Get Configuration
 
 Retrieve current application configuration settings.
 
@@ -1641,7 +1725,7 @@ curl -X GET \
 
 ---
 
-## 📝 23. Update Configuration
+## 📝 24. Update Configuration
 
 Update application configuration settings.
 
