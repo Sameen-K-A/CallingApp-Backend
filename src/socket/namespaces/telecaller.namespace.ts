@@ -12,7 +12,8 @@ import {
   updateTelecallerPresenceInDB,
   getTelecallerDetailsForBroadcast,
   broadcastPresenceToUsers,
-  getSocketId
+  getSocketId,
+  PRESENCE_ROOMS
 } from '../services/presence.service';
 import {
   acceptCall,
@@ -40,7 +41,8 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     const userId = socket.data.userId;
     const role = socket.data.role;
 
-    await setOnline('TELECALLER', userId, socket.id);
+    setOnline('TELECALLER', userId, socket.id);
+    socket.join(PRESENCE_ROOMS.ONLINE_TELECALLERS);
 
     const [isDbUpdated, telecallerDetails] = await Promise.all([
       updateTelecallerPresenceInDB(userId, 'ONLINE'),
@@ -88,7 +90,7 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
         if (result.userSocketId) {
           const io = getIOInstance();
           const userNamespace = io.of('/user');
-          const userSocketId = await getSocketId('USER', result.userSocketId);
+          const userSocketId = getSocketId('USER', result.userSocketId);
 
           if (userSocketId) {
             userNamespace.to(userSocketId).emit('call:error', {
@@ -212,7 +214,7 @@ export const setupTelecallerNamespace = (io: SocketIOServer): Namespace<Telecall
     // Disconnect Handler
     // ============================================
     socket.on('disconnect', async (reason) => {
-      await setOffline('TELECALLER', userId);
+      setOffline('TELECALLER', userId, socket.id);
 
       const [isDbUpdated] = await Promise.all([
         updateTelecallerPresenceInDB(userId, 'OFFLINE'),

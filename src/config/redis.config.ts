@@ -50,14 +50,6 @@ redis.on('reconnecting', () => {
 
 
 export const REDIS_KEYS = {
-  // Presence keys
-  USER_SOCKET: (userId: string) => `presence:user:${userId}`,
-  TELECALLER_SOCKET: (userId: string) => `presence:telecaller:${userId}`,
-
-  // Reverse lookup (socket -> user)
-  SOCKET_USER: (socketId: string) => `socket:user:${socketId}`,
-  SOCKET_TELECALLER: (socketId: string) => `socket:telecaller:${socketId}`,
-
   // App Configuration
   APP_CONFIG: 'app:config',
 };

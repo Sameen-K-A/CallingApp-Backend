@@ -98,10 +98,8 @@ const handleMissedCall = async (callId: string, userId: string, telecallerId: st
     const userNamespace = io.of('/user');
     const telecallerNamespace = io.of('/telecaller');
 
-    const [userSocketId, telecallerSocketId] = await Promise.all([
-      getSocketId('USER', userId),
-      getSocketId('TELECALLER', telecallerId)
-    ]);
+    const userSocketId = getSocketId('USER', userId);
+    const telecallerSocketId = getSocketId('TELECALLER', telecallerId);
 
     if (userSocketId) {
       userNamespace.to(userSocketId).emit('call:missed', { callId });
@@ -253,7 +251,7 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
       return createErrorResult(`${telecallerName} is busy on another call. Please try again later.`);
     }
 
-    const telecallerSocketId = await getSocketId('TELECALLER', telecallerId);
+    const telecallerSocketId = getSocketId('TELECALLER', telecallerId);
 
     if (!telecallerSocketId) {
       return createErrorResult(`${telecallerName} is currently unavailable. Please try again later.`);
@@ -380,7 +378,7 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
       { $set: { 'telecallerProfile.presence': 'ON_CALL' } }
     );
 
-    const userSocketId = await getSocketId('USER', call.userId.toString());
+    const userSocketId = getSocketId('USER', call.userId.toString());
 
     console.log(`📞 Call accepted: ${callId} | Telecaller: ${telecallerId}`);
 
@@ -424,7 +422,7 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
 
     clearCallTimer(callId);
 
-    const userSocketId = await getSocketId('USER', call.userId.toString());
+    const userSocketId = getSocketId('USER', call.userId.toString());
     const roomName = call._id.toString();
 
     console.log(`📞 Call rejected: ${callId} | Telecaller: ${telecallerId}`);
@@ -466,7 +464,7 @@ export const cancelCall = async (userId: string, callId: string): Promise<CallAc
 
     clearCallTimer(callId);
 
-    const telecallerSocketId = await getSocketId('TELECALLER', call.telecallerId.toString());
+    const telecallerSocketId = getSocketId('TELECALLER', call.telecallerId.toString());
     const roomName = call._id.toString();
 
     console.log(`📞 Call cancelled by user: ${callId} | User: ${userId}`);
@@ -526,8 +524,8 @@ export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', en
     console.log(`📞 Call ended: ${callId} | Duration: ${duration}s | Ended by: ${endedBy}`);
 
     const otherPartySocketId = endedBy === 'USER'
-      ? await getSocketId('TELECALLER', call.telecallerId.toString())
-      : await getSocketId('USER', call.userId.toString());
+      ? getSocketId('TELECALLER', call.telecallerId.toString())
+      : getSocketId('USER', call.userId.toString());
 
     return {
       success: true,
@@ -575,7 +573,7 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
 
       // Notify telecaller that call ended
       const telecallerNamespace = io.of('/telecaller');
-      const telecallerSocketId = await getSocketId('TELECALLER', telecallerId);
+      const telecallerSocketId = getSocketId('TELECALLER', telecallerId);
 
       if (telecallerSocketId) {
         telecallerNamespace.to(telecallerSocketId).emit('call:ended', { callId });
@@ -603,7 +601,7 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
 
       const io = getIOInstance();
       const telecallerNamespace = io.of('/telecaller');
-      const telecallerSocketId = await getSocketId('TELECALLER', ringingCall.telecallerId.toString());
+      const telecallerSocketId = getSocketId('TELECALLER', ringingCall.telecallerId.toString());
 
       if (telecallerSocketId) {
         telecallerNamespace.to(telecallerSocketId).emit('call:cancelled', { callId });
@@ -640,7 +638,7 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
 
       const io = getIOInstance();
       const userNamespace = io.of('/user');
-      const userSocketId = await getSocketId('USER', activeCall.userId.toString());
+      const userSocketId = getSocketId('USER', activeCall.userId.toString());
 
       if (userSocketId) {
         userNamespace.to(userSocketId).emit('call:ended', { callId });
@@ -660,7 +658,7 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
 
       const io = getIOInstance();
       const userNamespace = io.of('/user');
-      const userSocketId = await getSocketId('USER', ringingCall.userId.toString());
+      const userSocketId = getSocketId('USER', ringingCall.userId.toString());
 
       if (userSocketId) {
         userNamespace.to(userSocketId).emit('call:missed', { callId });

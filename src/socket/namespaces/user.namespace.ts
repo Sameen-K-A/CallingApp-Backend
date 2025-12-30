@@ -7,7 +7,7 @@ import {
   CallInitiatePayload,
   CallIdPayload,
 } from '../types/user.events';
-import { broadcastPresenceToUsers, setOffline, setOnline } from '../services/presence.service';
+import { broadcastPresenceToUsers, setOffline, setOnline, PRESENCE_ROOMS } from '../services/presence.service';
 import {
   initiateCall,
   cancelCall,
@@ -33,7 +33,8 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     const userId = socket.data.userId;
     const role = socket.data.role;
 
-    await setOnline('USER', userId, socket.id);
+    setOnline('USER', userId, socket.id);
+    socket.join(PRESENCE_ROOMS.ONLINE_USERS);
     console.log(`🟢 User connected: ${socket.id} | User ID: ${userId} | Role: ${role}`);
 
     // ============================================
@@ -181,7 +182,7 @@ export const setupUserNamespace = (io: SocketIOServer): Namespace<UserToServerEv
     // Disconnect Handler
     // ============================================
     socket.on('disconnect', async (reason) => {
-      await setOffline('USER', userId);
+      setOffline('USER', userId, socket.id);
       console.log(`🔴 User disconnected: ${socket.id} - Reason: ${reason}`);
 
       await handleUserDisconnectDuringCall(userId);
