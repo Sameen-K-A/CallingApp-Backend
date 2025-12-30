@@ -207,6 +207,7 @@ export const getTelecallerDetailsForCall = async (telecallerId: string): Promise
 export const initiateCall = async (userId: string, telecallerId: string, callType: 'AUDIO' | 'VIDEO'): Promise<CallInitiateResult> => {
   try {
     if (!isValidObjectId(userId) || !isValidObjectId(telecallerId)) {
+      console.warn(`⚠️ initiateCall: Invalid ObjectId - userId: ${userId}, telecallerId: ${telecallerId}`);
       return createErrorResult('Something went wrong. Please try again.');
     }
 
@@ -227,10 +228,12 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
     ]);
 
     if (!user) {
+      console.warn(`⚠️ initiateCall: User not found or inactive - userId: ${userId}`);
       return createErrorResult('Your account is not available. Please contact support.');
     };
 
     if (!telecallerDoc) {
+      console.warn(`⚠️ initiateCall: Telecaller not found - telecallerId: ${telecallerId}`);
       return createErrorResult('This person is no longer available for calls.');
     };
 
@@ -314,6 +317,7 @@ export const initiateCall = async (userId: string, telecallerId: string, callTyp
 export const acceptCall = async (telecallerId: string, callId: string): Promise<CallActionResult> => {
   try {
     if (!isValidObjectId(callId) || !isValidObjectId(telecallerId)) {
+      console.warn(`⚠️ acceptCall: Invalid ObjectId - callId: ${callId}, telecallerId: ${telecallerId}`);
       return createErrorResult('Something went wrong. Please try again.');
     }
 
@@ -324,6 +328,7 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
     ).lean();
 
     if (!call) {
+      console.warn(`⚠️ acceptCall: Call not found or not RINGING - callId: ${callId}, telecallerId: ${telecallerId}`);
       return createErrorResult('Call is no longer available.');
     }
 
@@ -409,6 +414,7 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
 export const rejectCall = async (telecallerId: string, callId: string): Promise<CallActionResult> => {
   try {
     if (!isValidObjectId(callId) || !isValidObjectId(telecallerId)) {
+      console.warn(`⚠️ rejectCall: Invalid ObjectId - callId: ${callId}, telecallerId: ${telecallerId}`);
       return createErrorResult('Something went wrong. Please try again.');
     }
 
@@ -417,6 +423,7 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
       .lean();
 
     if (!call) {
+      console.warn(`⚠️ rejectCall: Call not found or not RINGING - callId: ${callId}`);
       return createErrorResult('Call not found or already ended.');
     }
 
@@ -451,6 +458,7 @@ export const rejectCall = async (telecallerId: string, callId: string): Promise<
 export const cancelCall = async (userId: string, callId: string): Promise<CallActionResult> => {
   try {
     if (!isValidObjectId(callId) || !isValidObjectId(userId)) {
+      console.warn(`⚠️ cancelCall: Invalid ObjectId - callId: ${callId}, userId: ${userId}`);
       return createErrorResult('Something went wrong. Please try again.');
     }
 
@@ -459,6 +467,7 @@ export const cancelCall = async (userId: string, callId: string): Promise<CallAc
       .lean();
 
     if (!call) {
+      console.warn(`⚠️ cancelCall: Call not found or not RINGING - callId: ${callId}, userId: ${userId}`);
       return createErrorResult('Call not found or already ended.');
     };
 
@@ -493,6 +502,7 @@ export const cancelCall = async (userId: string, callId: string): Promise<CallAc
 export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', enderId: string): Promise<CallEndResult> => {
   try {
     if (!isValidObjectId(callId)) {
+      console.warn(`⚠️ endCall: Invalid callId: ${callId}`);
       return createErrorResult('Invalid call ID.');
     }
 
@@ -503,6 +513,7 @@ export const endCall = async (callId: string, endedBy: 'USER' | 'TELECALLER', en
     const call = await CallModel.findOne(query).lean();
 
     if (!call) {
+      console.warn(`⚠️ endCall: Call not found or not ACCEPTED - callId: ${callId}, endedBy: ${endedBy}`);
       return createErrorResult('Call not found or already ended.');
     }
 
