@@ -644,7 +644,7 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
         { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } }
       );
 
-      destroyLiveKitRoom(callId);
+      await destroyLiveKitRoom(callId);
       console.log(`📞 Call auto-ended (telecaller disconnected): ${callId} | Duration: ${duration}s`);
 
       const io = getIOInstance();
