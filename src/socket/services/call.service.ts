@@ -362,17 +362,17 @@ export const acceptCall = async (telecallerId: string, callId: string): Promise<
     } catch (tokenError) {
       console.error('❌ Failed to generate LiveKit tokens:', tokenError);
 
-      // Rollback the call status since we can't proceed
-      await CallModel.updateOne(
-        { _id: callId },
-        { $set: { status: 'MISSED', endedAt: new Date() } }
-      );
-
-      // Reset telecaller presence
-      await UserModel.updateOne(
-        { _id: telecallerId, role: 'TELECALLER' },
-        { $set: { 'telecallerProfile.presence': 'ONLINE' } }
-      );
+      // Rollback in parallel since operations are independent
+      await Promise.all([
+        CallModel.updateOne(
+          { _id: callId },
+          { $set: { status: 'MISSED', endedAt: new Date() } }
+        ),
+        UserModel.updateOne(
+          { _id: telecallerId, role: 'TELECALLER' },
+          { $set: { 'telecallerProfile.presence': 'ONLINE' } }
+        )
+      ]);
 
       return createErrorResult('Failed to setup call. Please try again.');
     }
@@ -638,12 +638,15 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
       const callId = activeCall._id.toString();
       const duration = activeCall.acceptedAt ? calculateDuration(activeCall.acceptedAt) : 0;
 
-      await CallModel.updateOne(
-        { _id: callId },
-        { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } }
-      );
+      // Run updates in parallel since they are independent
+      await Promise.all([
+        CallModel.updateOne(
+          { _id: callId },
+          { $set: { status: 'COMPLETED', endedAt: new Date(), durationInSeconds: duration } }
+        ),
+        destroyLiveKitRoom(callId)
+      ]);
 
-      await destroyLiveKitRoom(callId);
       console.log(`📞 Call auto-ended (telecaller disconnected): ${callId} | Duration: ${duration}s`);
 
       const io = getIOInstance();
