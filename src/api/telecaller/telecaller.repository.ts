@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import UserModel from '../../models/user.model';
 import TransactionModel from '../../models/transaction.model';
 import { IBankDetails, IUserDocument } from '../../types/general';
@@ -5,7 +6,8 @@ import {
   ITelecallerRepository,
   ReapplyUpdatePayload,
   TelecallerUpdatePayload,
-  TelecallerForBankDetails
+  TelecallerForBankDetails,
+  TransactionHistoryItem
 } from './telecaller.types';
 
 export class TelecallerRepository implements ITelecallerRepository {
@@ -49,5 +51,23 @@ export class TelecallerRepository implements ITelecallerRepository {
       .lean();
     return pendingWithdrawal !== null;
   };
+
+  public async findTransactionHistory(userId: string, page: number, limit: number): Promise<{ transactions: TransactionHistoryItem[], total: number }> {
+    const skip = (page - 1) * limit;
+
+    const [transactions, total] = await Promise.all([
+      TransactionModel.aggregate<TransactionHistoryItem>([
+        { $match: { userId: new Types.ObjectId(userId), type: 'WITHDRAWAL' } },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        { $project: { userId: 0 } },
+        { $addFields: { _id: { $toString: '$_id' } } }
+      ]),
+      TransactionModel.countDocuments({ userId, type: 'WITHDRAWAL' })
+    ]);
+
+    return { transactions, total };
+  }
 
 };

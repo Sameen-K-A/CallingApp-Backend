@@ -3,11 +3,12 @@ import { TelecallerRepository } from './telecaller.repository'
 import { TelecallerService } from './telecaller.service'
 import { TelecallerController } from './telecaller.controller'
 import { authenticate } from '../../utils/jwt'
-import { validateBody } from '../../middleware/validation.middleware'
+import { validateBody, validateQuery } from '../../middleware/validation.middleware'
 import {
    editProfileSchema,
    reapplySchema,
-   bankDetailsSchema
+   bankDetailsSchema,
+   paginationSchema,
 } from '../../middleware/validation/telecaller.validation'
 
 const router = Router();
@@ -24,5 +25,8 @@ router.patch('/edit-profile', authenticate('TELECALLER'), validateBody(editProfi
 router.get('/bank-details', authenticate('TELECALLER'), controller.getBankDetails);
 router.post('/bank-details', authenticate('TELECALLER'), validateBody(bankDetailsSchema), controller.addBankDetails);
 router.delete('/bank-details', authenticate('TELECALLER'), controller.deleteBankDetails);
+
+// Transaction history route
+router.get('/transactions', authenticate('TELECALLER'), validateQuery(paginationSchema), controller.getTransactionHistory);
 
 export { router as telecallerRouter };

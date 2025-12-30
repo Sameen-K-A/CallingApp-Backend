@@ -79,6 +79,28 @@ export interface TelecallerForBankDetails {
   };
 }
 
+// Transaction History Types
+export type TransactionHistoryItem = {
+  _id: string;
+  type: 'WITHDRAWAL';
+  coins?: number;
+  amount: number;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REJECTED';
+  bankDetails?: {
+    accountNumber: string;
+    ifscCode: string;
+    accountHolderName: string;
+  };
+  transferReference?: string;
+  processedAt?: Date;
+  createdAt: Date;
+};
+
+export type PaginatedTransactionHistoryResponse = {
+  transactions: TransactionHistoryItem[];
+  hasMore: boolean;
+};
+
 // ============================================
 // Service & Repository Interfaces
 // ============================================
@@ -90,6 +112,7 @@ export interface ITelecallerRepository {
   addBankDetails(userId: string, bankDetails: IBankDetails): Promise<boolean>;
   removeBankDetails(userId: string): Promise<boolean>;
   hasPendingWithdrawal(userId: string): Promise<boolean>;
+  findTransactionHistory(userId: string, page: number, limit: number): Promise<{ transactions: TransactionHistoryItem[], total: number }>;
 };
 
 export interface ITelecallerService {
@@ -98,4 +121,5 @@ export interface ITelecallerService {
   getBankDetails(userId: string): Promise<BankDetailsResponse>;
   addBankDetails(userId: string, bankDetails: BankDetailsDto): Promise<BankDetailsResponse>;
   deleteBankDetails(userId: string): Promise<void>;
+  getTransactionHistory(userId: string, page: number, limit: number): Promise<PaginatedTransactionHistoryResponse>;
 };

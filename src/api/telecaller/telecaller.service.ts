@@ -12,6 +12,7 @@ import {
   BankDetailsDto,
   BankDetailsResponse,
   TelecallerForBankDetails,
+  PaginatedTransactionHistoryResponse,
 } from './telecaller.types';
 
 function buildUserProfileResponse(user: IUserDocument): TelecallerProfileResponse {
@@ -199,6 +200,18 @@ export class TelecallerService implements ITelecallerService {
     if (!success) {
       throw new ApiError(500, 'Failed to remove bank details.');
     }
+  };
+
+  public async getTransactionHistory(userId: string, page: number, limit: number): Promise<PaginatedTransactionHistoryResponse> {
+    const telecaller = await this.telecallerRepository.findTelecallerForBankDetails(userId);
+    this.validateTelecaller(telecaller);
+
+    const { transactions, total } = await this.telecallerRepository.findTransactionHistory(userId, page, limit);
+
+    return {
+      transactions,
+      hasMore: page * limit < total
+    };
   };
 
 };

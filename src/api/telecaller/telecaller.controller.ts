@@ -87,4 +87,18 @@ export class TelecallerController extends BaseController {
     }
   };
 
+  public getTransactionHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = this.getUserId(req);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      const result = await this.telecallerService.getTransactionHistory(userId, page, limit);
+
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
 };

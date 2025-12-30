@@ -13,6 +13,7 @@
 | `GET` | `/telecaller/bank-details` | Get bank details |
 | `POST` | `/telecaller/bank-details` | Add/update bank details |
 | `DELETE` | `/telecaller/bank-details` | Delete bank details |
+| `GET` | `/telecaller/transactions` | Get transaction history |
 
 > **Note:** All endpoints require `TELECALLER` role and `ACTIVE` account status.
 
@@ -404,6 +405,73 @@ curl -X DELETE http://localhost:8000/telecaller/bank-details \
 
 ---
 
+## 📜 Transaction History
+
+Retrieve paginated transaction history (withdrawals).
+
+```
+GET /telecaller/transactions
+```
+
+### Request
+
+#### Headers
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
+
+#### Query Parameters
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `page` | `number` | ❌ No | `1` | Page number |
+| `limit` | `number` | ❌ No | `10` | Items per page |
+
+### Response
+
+#### ✅ Success `200 OK`
+
+```json
+{
+  "transactions": [
+    {
+      "_id": "658dc7a1e1b2c3d4e5f6a7b8",
+      "type": "WITHDRAWAL",
+      "coins": 500,
+      "amount": 500,
+      "status": "SUCCESS",
+      "bankDetails": {
+        "accountNumber": "123456789012",
+        "ifscCode": "HDFC0001234",
+        "accountHolderName": "Jane Smith"
+      },
+      "transferReference": "TXN123456789",
+      "processedAt": "2024-01-15T10:30:00.000Z",
+      "createdAt": "2024-01-15T09:00:00.000Z"
+    }
+  ],
+  "hasMore": false
+}
+```
+
+#### ❌ Errors
+
+| Status | Scenario | Response |
+|--------|----------|----------|
+| `401` | Missing token | `"Authentication token is required."` |
+| `403` | Wrong role | `"Access denied. Requires TELECALLER role."` |
+| `403` | Not approved | `"Your application must be approved to access this feature."` |
+
+### Example
+
+```bash
+curl -X GET "http://localhost:8000/telecaller/transactions?page=1&limit=10" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+---
+
 ## 📊 Response Field Reference
 
 ### Telecaller Profile Fields
@@ -437,6 +505,20 @@ curl -X DELETE http://localhost:8000/telecaller/bank-details \
 | `accountNumber` | `string` | Bank account number (9-18 digits) |
 | `ifscCode` | `string` | IFSC code (format: `XXXX0XXXXXX`) |
 | `accountHolderName` | `string` | Account holder's name |
+
+### Transaction History Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `_id` | `string` | Unique transaction ID |
+| `type` | `string` | `WITHDRAWAL` |
+| `coins` | `number` | Number of coins (optional) |
+| `amount` | `number` | Withdrawal amount |
+| `status` | `string` | `PENDING`, `SUCCESS`, `FAILED`, `CANCELLED`, `REJECTED` |
+| `bankDetails` | `object` | Bank details used for the transaction |
+| `transferReference` | `string` | Reference ID from the payment provider |
+| `processedAt` | `string` | Timestamp when processed (ISO 8601) |
+| `createdAt` | `string` | Timestamp when created (ISO 8601) |
 
 ---
 
