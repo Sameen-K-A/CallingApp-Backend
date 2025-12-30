@@ -414,7 +414,7 @@ curl -X PATCH http://localhost:8000/users/edit-profile \
 
 ## 💰 4. Get Plans
 
-Get available recharge plans.
+Get available recharge plans with first-time recharge indicator. This endpoint helps identify if the user is eligible for a first-time recharge offer.
 
 ### Get Plans Endpoint
 
@@ -434,29 +434,32 @@ GET `/users/plans`
 {
   "success": true,
   "message": "Plans fetched successfully.",
-  "data": [
-    {
-      "_id": "507f1f77bcf86cd799439021",
-      "amount": 99,
-      "coins": 100,
-      "discountPercentage": 0,
-      "createdAt": "2024-01-01T00:00:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439022",
-      "amount": 199,
-      "coins": 220,
-      "discountPercentage": 10,
-      "createdAt": "2024-01-01T00:00:00.000Z"
-    },
-    {
-      "_id": "507f1f77bcf86cd799439023",
-      "amount": 499,
-      "coins": 600,
-      "discountPercentage": 20,
-      "createdAt": "2024-01-01T00:00:00.000Z"
-    }
-  ]
+  "data": {
+    "plans": [
+      {
+        "_id": "507f1f77bcf86cd799439021",
+        "amount": 99,
+        "coins": 100,
+        "discountPercentage": 0,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      },
+      {
+        "_id": "507f1f77bcf86cd799439022",
+        "amount": 199,
+        "coins": 220,
+        "discountPercentage": 10,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      },
+      {
+        "_id": "507f1f77bcf86cd799439023",
+        "amount": 499,
+        "coins": 600,
+        "discountPercentage": 20,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "isFirstRecharge": true
+  }
 }
 ```
 
@@ -466,7 +469,33 @@ GET `/users/plans`
 {
   "success": true,
   "message": "Plans fetched successfully.",
-  "data": []
+  "data": {
+    "plans": [],
+    "isFirstRecharge": true
+  }
+}
+```
+
+### Get Plans Response Fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| plans | array | List of available recharge plans |
+| plans[].\_id | string | Unique plan ID |
+| plans[].amount | number | Plan price in currency |
+| plans[].coins | number | Coins received with this plan |
+| plans[].discountPercentage | number | Discount percentage (0-99) |
+| plans[].createdAt | string | Plan creation timestamp |
+| isFirstRecharge | boolean | `true` if user has never made a successful recharge, `false` otherwise. Use this to show first-time recharge offers |
+
+### Get Plans Error Responses
+
+#### Feature Not Available (403)
+
+```json
+{
+  "success": false,
+  "message": "This feature is only available for users."
 }
 ```
 

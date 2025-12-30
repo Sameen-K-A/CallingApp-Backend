@@ -6,6 +6,7 @@ import {
   UserProfileResponse,
   UserUpdatePayload,
   PlanResponse,
+  PlansWithFirstRechargeResponse,
   PaginatedFavoritesResponse,
   FavoriteActionResponse,
   PaginatedTelecallersResponse
@@ -118,13 +119,20 @@ export class UserService implements IUserService {
     return buildUserProfileResponse(updatedUser)
   };
 
-  public async getActivePlans(): Promise<PlanResponse[]> {
-    const plans = await this.userRepository.findActivePlans()
+  public async getPlansWithFirstRechargeStatus(userId: string): Promise<PlansWithFirstRechargeResponse> {
+    const user = await this.userRepository.findUserById(userId)
+    this.checkUserAndAccountStatus(user)
+    this.checkIsRegularUser(user)
 
-    if (!plans || plans.length === 0) {
-      return []
-    }
-    return plans
+    const [plans, hasRecharge] = await Promise.all([
+      this.userRepository.findActivePlans(),
+      this.userRepository.hasSuccessfulRecharge(userId)
+    ]);
+
+    return {
+      plans: plans || [],
+      isFirstRecharge: !hasRecharge
+    };
   };
 
   public async getFavorites(userId: string, page: number, limit: number): Promise<PaginatedFavoritesResponse> {

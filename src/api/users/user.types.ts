@@ -63,6 +63,12 @@ export type PlanResponse = {
   createdAt: Date
 }
 
+// Plans with first-time recharge indicator
+export type PlansWithFirstRechargeResponse = {
+  plans: PlanResponse[]
+  isFirstRecharge: boolean
+}
+
 // ============================================
 // Favorite Telecaller DTOs
 // ============================================
@@ -106,6 +112,7 @@ export interface IUserRepository {
   findUserById(userId: string): Promise<IUserDocument | null>
   updateUser(userId: string, payload: UserUpdatePayload): Promise<IUserDocument | null>
   findActivePlans(): Promise<PlanResponse[]>
+  hasSuccessfulRecharge(userId: string): Promise<boolean>
   findFavoritesByUserId(userId: string, page: number, limit: number): Promise<{ favorites: FavoriteTelecallerResponse[], total: number }>
   findTelecallerById(telecallerId: string): Promise<IUserDocument | null>
   addToFavorites(userId: string, telecallerId: string): Promise<{ success: boolean; alreadyExists: boolean }>
@@ -119,7 +126,7 @@ export interface IUserService {
   getProfile(userId: string): Promise<UserProfileResponse>
   completeUserProfile(userId: string, profileData: CompleteProfileDto): Promise<UserProfileResponse>
   editUserProfile(userId: string, profileData: EditProfileDto): Promise<UserProfileResponse>
-  getActivePlans(): Promise<PlanResponse[]>
+  getPlansWithFirstRechargeStatus(userId: string): Promise<PlansWithFirstRechargeResponse>
   getFavorites(userId: string, page: number, limit: number): Promise<PaginatedFavoritesResponse>
   addToFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse>
   removeFromFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse>

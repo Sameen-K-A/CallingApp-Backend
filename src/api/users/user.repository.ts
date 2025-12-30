@@ -2,6 +2,7 @@ import { TelecallerResponse, IUserRepository, PlanResponse, UserUpdatePayload, F
 import UserModel from '../../models/user.model'
 import { IUserDocument } from '../../types/general'
 import PlanModel from '../../models/plan.model'
+import TransactionModel from '../../models/transaction.model'
 import { Types } from 'mongoose'
 
 export class UserRepository implements IUserRepository {
@@ -23,6 +24,15 @@ export class UserRepository implements IUserRepository {
       { $sort: { amount: 1 } },
       { $project: { _id: { $toString: '$_id' }, amount: 1, coins: 1, discountPercentage: 1, createdAt: 1 } }
     ])
+  };
+
+  public async hasSuccessfulRecharge(userId: string): Promise<boolean> {
+    const result = await TransactionModel.exists({
+      userId: new Types.ObjectId(userId),
+      type: 'RECHARGE',
+      status: 'SUCCESS'
+    });
+    return result !== null;
   };
 
   public async findFavoritesByUserId(userId: string, page: number, limit: number): Promise<{ favorites: FavoriteTelecallerResponse[], total: number }> {

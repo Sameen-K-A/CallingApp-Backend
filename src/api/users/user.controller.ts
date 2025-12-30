@@ -56,12 +56,16 @@ export class UserController extends BaseController {
 
   public getPlans = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const plans = await this.userService.getActivePlans()
+      const userId = this.getUserId(req);
+      const result = await this.userService.getPlansWithFirstRechargeStatus(userId)
 
       res.status(200).json({
         success: true,
         message: 'Plans fetched successfully.',
-        data: plans
+        data: {
+          plans: result.plans,
+          isFirstRecharge: result.isFirstRecharge
+        }
       })
     } catch (error) {
       next(error)
