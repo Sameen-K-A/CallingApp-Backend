@@ -57,6 +57,8 @@ export interface CallEndResult {
   telecallerId?: string;
 };
 
+type SocketNamespace = '/user' | '/telecaller';
+
 // ============================================
 // Helper Functions
 // ============================================
@@ -71,6 +73,13 @@ const calculateDuration = (acceptedAt: Date): number => {
 
 const createErrorResult = <T extends { success: boolean; error?: string }>(error: string): T => {
   return { success: false, error } as T;
+};
+
+const emitToSocket = (namespace: SocketNamespace, socketId: string | null, event: string, payload: object): void => {
+  if (!socketId) return;
+
+  const io = getIOInstance();
+  io.of(namespace).to(socketId).emit(event, payload);
 };
 
 // ============================================
@@ -93,20 +102,11 @@ const handleMissedCall = async (callId: string, userId: string, telecallerId: st
 
     console.log(`📞 Call marked as MISSED: ${callId}`);
 
-    const io = getIOInstance();
-    const userNamespace = io.of('/user');
-    const telecallerNamespace = io.of('/telecaller');
-
     const userSocketId = getSocketId('USER', userId);
     const telecallerSocketId = getSocketId('TELECALLER', telecallerId);
 
-    if (userSocketId) {
-      userNamespace.to(userSocketId).emit('call:missed', { callId });
-    };
-
-    if (telecallerSocketId) {
-      telecallerNamespace.to(telecallerSocketId).emit('call:missed', { callId });
-    };
+    emitToSocket('/user', userSocketId, 'call:missed', { callId });
+    emitToSocket('/telecaller', telecallerSocketId, 'call:missed', { callId });
 
   } catch (error) {
     console.error('❌ Error handling missed call:', error);
@@ -579,19 +579,13 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
 
       console.log(`📞 Call auto-ended (user disconnected): ${callId} | Duration: ${duration}s`);
 
-      const io = getIOInstance();
-
       // Notify telecaller that call ended
-      const telecallerNamespace = io.of('/telecaller');
       const telecallerSocketId = getSocketId('TELECALLER', telecallerId);
-
-      if (telecallerSocketId) {
-        telecallerNamespace.to(telecallerSocketId).emit('call:ended', { callId });
-      }
+      emitToSocket('/telecaller', telecallerSocketId, 'call:ended', { callId });
 
       // Broadcast to all users that telecaller is available again
-      const userNamespace = io.of('/user');
-      userNamespace.emit('telecaller:presence-changed', {
+      const io = getIOInstance();
+      io.of('/user').emit('telecaller:presence-changed', {
         telecallerId: telecallerId,
         presence: 'ONLINE',
         telecaller: null
@@ -609,13 +603,8 @@ export const handleUserDisconnectDuringCall = async (userId: string): Promise<vo
 
       console.log(`📞 Call auto-missed (user disconnected): ${callId}`);
 
-      const io = getIOInstance();
-      const telecallerNamespace = io.of('/telecaller');
       const telecallerSocketId = getSocketId('TELECALLER', ringingCall.telecallerId.toString());
-
-      if (telecallerSocketId) {
-        telecallerNamespace.to(telecallerSocketId).emit('call:cancelled', { callId });
-      }
+      emitToSocket('/telecaller', telecallerSocketId, 'call:cancelled', { callId });
     }
   } catch (error) {
     console.error('❌ Error handling user disconnect during call:', error);
@@ -649,13 +638,8 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
 
       console.log(`📞 Call auto-ended (telecaller disconnected): ${callId} | Duration: ${duration}s`);
 
-      const io = getIOInstance();
-      const userNamespace = io.of('/user');
       const userSocketId = getSocketId('USER', activeCall.userId.toString());
-
-      if (userSocketId) {
-        userNamespace.to(userSocketId).emit('call:ended', { callId });
-      }
+      emitToSocket('/user', userSocketId, 'call:ended', { callId });
 
       return;
     }
@@ -669,13 +653,8 @@ export const handleTelecallerDisconnectDuringCall = async (telecallerId: string)
 
       console.log(`📞 Call auto-missed (telecaller disconnected): ${callId}`);
 
-      const io = getIOInstance();
-      const userNamespace = io.of('/user');
       const userSocketId = getSocketId('USER', ringingCall.userId.toString());
-
-      if (userSocketId) {
-        userNamespace.to(userSocketId).emit('call:missed', { callId });
-      }
+      emitToSocket('/user', userSocketId, 'call:missed', { callId });
     }
   } catch (error) {
     console.error('❌ Error handling telecaller disconnect during call:', error);
