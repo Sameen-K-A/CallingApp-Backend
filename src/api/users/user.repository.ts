@@ -1,4 +1,11 @@
-import { TelecallerResponse, IUserRepository, PlanResponse, UserUpdatePayload, FavoriteTelecallerResponse } from './user.types'
+import {
+  TelecallerResponse,
+  IUserRepository,
+  PlanResponse,
+  UserUpdatePayload,
+  FavoriteTelecallerResponse,
+  RechargeTransactionHistoryItem
+} from './user.types'
 import UserModel from '../../models/user.model'
 import { IUserDocument } from '../../types/general'
 import PlanModel from '../../models/plan.model'
@@ -201,6 +208,34 @@ export class UserRepository implements IUserRepository {
     const telecallers = result[0]?.telecallers || []
 
     return { telecallers, total }
+  };
+
+  public async findRechargeTransactionHistory(userId: string, page: number, limit: number): Promise<{ transactions: RechargeTransactionHistoryItem[], total: number }> {
+    const skip = (page - 1) * limit
+
+    const [transactions, total] = await Promise.all([
+      TransactionModel.aggregate<RechargeTransactionHistoryItem>([
+        { $match: { userId: new Types.ObjectId(userId), type: 'RECHARGE' } },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            _id: { $toString: '$_id' },
+            type: 1,
+            amount: 1,
+            coins: 1,
+            status: 1,
+            gatewayOrderId: 1,
+            gatewayPaymentId: 1,
+            createdAt: 1
+          }
+        }
+      ]),
+      TransactionModel.countDocuments({ userId: new Types.ObjectId(userId), type: 'RECHARGE' })
+    ])
+
+    return { transactions, total }
   };
 
 };

@@ -9,7 +9,8 @@ import {
   PlansWithFirstRechargeResponse,
   PaginatedFavoritesResponse,
   FavoriteActionResponse,
-  PaginatedTelecallersResponse
+  PaginatedTelecallersResponse,
+  PaginatedRechargeTransactionResponse,
 } from './user.types'
 import { ApiError } from '../../middleware/errors/ApiError'
 import { isTelecaller } from '../../utils/guards'
@@ -211,6 +212,19 @@ export class UserService implements IUserService {
       audioCallCharge: config.userAudioCallCoinPerSec,
       videoCallCharge: config.userVideoCallCoinPerSec,
     };
+  };
+
+  public async getRechargeTransactionHistory(userId: string, page: number, limit: number): Promise<PaginatedRechargeTransactionResponse> {
+    const user = await this.userRepository.findUserById(userId)
+    this.checkUserAndAccountStatus(user)
+    this.checkIsRegularUser(user)
+
+    const { transactions, total } = await this.userRepository.findRechargeTransactionHistory(userId, page, limit)
+
+    return {
+      transactions,
+      hasMore: page * limit < total
+    }
   };
 
 };

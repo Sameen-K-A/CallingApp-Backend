@@ -16,6 +16,7 @@
 | `POST` | `/users/favorites/:telecallerId` | Add telecaller to favorites |
 | `DELETE` | `/users/favorites/:telecallerId` | Remove telecaller from favorites |
 | `GET` | `/users/telecallers` | Get online telecallers with call charges |
+| `GET` | `/users/transactions` | Get recharge transaction history |
 
 > **Note:** All endpoints require authentication via `Authorization: Bearer <token>` header.
 
@@ -708,6 +709,81 @@ GET /users/telecallers
 curl -X GET "http://localhost:8000/users/telecallers?page=1&limit=15" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
+
+---
+
+## 🕒 Get Transaction History
+
+Get user's recharge transaction history with pagination.
+
+```
+GET /users/transactions
+```
+
+### Request
+
+#### Headers
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token>` |
+
+#### Query Parameters
+
+| Parameter | Type | Default | Validation |
+|-----------|------|---------|------------|
+| `page` | `number` | `1` | Minimum: 1 |
+| `limit` | `number` | `10` | Range: 1-50 |
+
+### Response
+
+#### ✅ Success `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Transaction history fetched successfully.",
+  "data": {
+    "transactions": [
+      {
+        "_id": "65e0c5b3e4b0a1b2c3d4e5f6",
+        "type": "RECHARGE",
+        "amount": 100,
+        "coins": 1000,
+        "status": "SUCCESS",
+        "gatewayOrderId": "order_N12345",
+        "gatewayPaymentId": "pay_P12345",
+        "createdAt": "2024-03-01T10:00:00.000Z"
+      },
+      {
+        "_id": "65e0c5b3e4b0a1b2c3d4e5f7",
+        "type": "RECHARGE",
+        "amount": 200,
+        "coins": 2000,
+        "status": "PENDING",
+        "gatewayOrderId": "order_N12346",
+        "gatewayPaymentId": "pay_P12346",
+        "createdAt": "2024-02-28T14:30:00.000Z"
+      }
+    ],
+    "hasMore": true
+  }
+}
+```
+
+#### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transactions` | `array` | List of transaction objects |
+| `transactions[].type` | `string` | Always `RECHARGE` |
+| `transactions[].amount` | `number` | Amount paid in currency |
+| `transactions[].coins` | `number` | Coins credited |
+| `transactions[].status` | `string` | `PENDING`, `SUCCESS`, `FAILED`, `CANCELLED` |
+| `transactions[].gatewayOrderId` | `string` | Payment gateway order ID |
+| `transactions[].gatewayPaymentId` | `string` | Payment gateway payment ID |
+| `transactions[].createdAt` | `string` | Transaction timestamp |
+| `hasMore` | `boolean` | `true` if more pages available |
 
 ---
 

@@ -137,4 +137,22 @@ export class UserController extends BaseController {
     }
   };
 
+  public getRechargeTransactionHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = this.getUserId(req);
+      const page = parseInt(req.query.page as string) || 1
+      const limit = parseInt(req.query.limit as string) || 10
+
+      const result = await this.userService.getRechargeTransactionHistory(userId, page, limit)
+
+      res.status(200).json({
+        success: true,
+        message: 'Transaction history fetched successfully.',
+        data: result
+      })
+    } catch (error) {
+      next(error)
+    }
+  };
+
 };

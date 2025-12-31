@@ -27,4 +27,7 @@ router.delete('/favorites/:telecallerId', authenticate(), validateParams(telecal
 // telecallers
 router.get('/telecallers', authenticate(), validateQuery(paginationSchema), controller.getTelecallers);
 
+// Transaction history route
+router.get('/transactions', authenticate(), validateQuery(paginationSchema), controller.getRechargeTransactionHistory);
+
 export { router as userRouter };

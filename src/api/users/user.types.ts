@@ -105,6 +105,26 @@ export type PaginatedTelecallersResponse = {
 }
 
 // ============================================
+// Recharge Transaction History DTOs
+// ============================================
+
+export type RechargeTransactionHistoryItem = {
+  _id: string
+  type: 'RECHARGE'
+  amount: number
+  coins: number
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  gatewayOrderId?: string
+  gatewayPaymentId?: string
+  createdAt: Date
+}
+
+export type PaginatedRechargeTransactionResponse = {
+  transactions: RechargeTransactionHistoryItem[]
+  hasMore: boolean
+}
+
+// ============================================
 // Service & Repository Interfaces
 // ============================================
 
@@ -120,6 +140,7 @@ export interface IUserRepository {
   findApprovedTelecallers(userId: string, page: number, limit: number): Promise<{ telecallers: TelecallerResponse[], total: number }>
   isInFavorites(userId: string, telecallerId: string): Promise<boolean>
   getFavoritesCount(userId: string): Promise<number>
+  findRechargeTransactionHistory(userId: string, page: number, limit: number): Promise<{ transactions: RechargeTransactionHistoryItem[], total: number }>
 }
 
 export interface IUserService {
@@ -131,4 +152,5 @@ export interface IUserService {
   addToFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse>
   removeFromFavorites(userId: string, telecallerId: string): Promise<FavoriteActionResponse>
   getTelecallers(userId: string, page: number, limit: number): Promise<PaginatedTelecallersResponse & { audioCallCharge: number; videoCallCharge: number }>
+  getRechargeTransactionHistory(userId: string, page: number, limit: number): Promise<PaginatedRechargeTransactionResponse>
 }
